@@ -250,9 +250,14 @@ export async function deleteFundFlow(id: number): Promise<void> {
 
 export async function getMonthlyStats(): Promise<MonthlyStat[]> {
   const res = await connectCall<{
-    stats: { year: number; month: number; income: number; expense: number }[];
+    stats: { year: number; month: number; income?: number; expense?: number }[];
   }>("fund_flow.v1.FundFlowService/GetMonthlyStats");
-  return res.stats || [];
+  return (res.stats || []).map((s) => ({
+    year: s.year,
+    month: s.month,
+    income: s.income ?? 0,
+    expense: s.expense ?? 0,
+  }));
 }
 
 // --- Exhibition ---

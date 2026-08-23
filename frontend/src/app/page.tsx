@@ -238,7 +238,7 @@ function LineChart({
   // 找最大值
   let maxVal = 0;
   for (const d of data) {
-    maxVal = Math.max(maxVal, d.income, Math.abs(d.expense));
+    maxVal = Math.max(maxVal, d.income, Math.abs(d.expense ?? 0));
   }
   if (maxVal === 0) maxVal = 1;
   // 留 20% 空间,并向上取整到好看的刻度
@@ -256,7 +256,7 @@ function LineChart({
     .join(" ");
 
   const expensePath = data
-    .map((d, i) => `${i === 0 ? "M" : "L"}${xPos(i)},${yScale(Math.abs(d.expense))}`)
+    .map((d, i) => `${i === 0 ? "M" : "L"}${xPos(i)},${yScale(Math.abs(d.expense ?? 0))}`)
     .join(" ");
 
   // Y 轴刻度线
@@ -327,7 +327,7 @@ function LineChart({
         <circle
           key={i}
           cx={xPos(i)}
-          cy={yScale(Math.abs(d.expense))}
+          cy={yScale(Math.abs(d.expense ?? 0))}
           r={2.5}
           fill="#22c55e"
         />
@@ -456,7 +456,7 @@ export default function Home() {
       list.push({
         label: `${d.getMonth() + 1}月`,
         income: stat?.income ?? 0,
-        expense: stat ? Math.abs(stat.expense) : 0,
+        expense: stat ? Math.abs(stat.expense ?? 0) : 0,
       });
     }
     return list;
@@ -504,19 +504,19 @@ export default function Home() {
               <div className="flex items-center gap-2 text-xs">
                 <span className="text-control-light">总收入</span>
                 <span className="text-control font-medium">
-                  ¥ {data?.total_income.toLocaleString("zh-CN", {
+                  ¥ {(data?.total_income ?? 0).toLocaleString("zh-CN", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
-                  }) || "0.00"}
+                  })}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-xs">
                 <span className="text-control-light">总支出</span>
                 <span className="text-control font-medium">
-                  ¥ {data?.total_expense.toLocaleString("zh-CN", {
+                  ¥ {(data?.total_expense ?? 0).toLocaleString("zh-CN", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
-                  }) || "0.00"}
+                  })}
                 </span>
               </div>
             </div>
