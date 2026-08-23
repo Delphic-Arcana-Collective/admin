@@ -104,6 +104,9 @@ jobs:
           name: frontend-out
           path: ${{ env.DEPLOY_PATH }}/backend/public
 
+      - name: Stop backend before binary update
+        run: sudo systemctl stop delphic-admin || true
+
       - name: Download backend artifact
         uses: actions/download-artifact@v4
         with:
