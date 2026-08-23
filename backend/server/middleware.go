@@ -1,7 +1,9 @@
 package server
 
 import (
+	"bufio"
 	"log"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -63,6 +65,19 @@ func (r *statusRecorder) WriteHeader(code int) {
 	r.ResponseWriter.WriteHeader(code)
 }
 
+func (r *statusRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if h, ok := r.ResponseWriter.(http.Hijacker); ok {
+		return h.Hijack()
+	}
+	return nil, nil, http.ErrNotSupported
+}
+
+func (r *statusRecorder) Flush() {
+	if f, ok := r.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
 // auditLogMiddleware records Connect RPC and /api/* requests.
 func auditLogMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -107,6 +122,9 @@ func auditLogMiddleware(next http.Handler) http.Handler {
 }
 
 func shouldAudit(path string) bool {
+	if strings.HasPrefix(path, "/api/ws/") {
+		return false
+	}
 	if strings.HasPrefix(path, "/api/") {
 		return true
 	}
