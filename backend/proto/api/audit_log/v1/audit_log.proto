@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package audit_log.v1;
+
+option go_package = "processDelphicData/proto/api/audit_log/v1;auditlogv1";
+
+service AuditLogService {
+  rpc ListAuditLogs(ListAuditLogsRequest) returns (ListAuditLogsResponse);
+}
+
+message AuditLog {
+  uint32 id = 1;
+  string path = 2;
+  string method = 3;
+  int32 status = 4;
+  int64 latency_ms = 5;
+  string ip = 6;
+  string origin = 7;
+  string error = 8;
+  string created_at = 9;
+}
+
+message ListAuditLogsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message ListAuditLogsResponse {
+  repeated AuditLog items = 1;
+  int64 total = 2;
+}

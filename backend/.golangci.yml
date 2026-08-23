@@ -1,0 +1,16 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: false
+
+linters:
+  default: standard
+  disable:
+    - err113 # allow fmt.Errorf without wrapping in handlers
+
+issues:
+  exclude-rules:
+    - path: proto/
+      linters:
+        - all

@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package file.v1;
+
+option go_package = "processDelphicData/proto/api/file/v1;filev1";
+
+service FileService {
+  rpc UploadFile(UploadFileRequest) returns (UploadFileResponse);
+  rpc GetFile(GetFileRequest) returns (GetFileResponse);
+}
+
+message File {
+  uint32 id = 1;
+  bytes data = 2;
+  string ext = 3;
+  string mime_type = 4;
+  string created_at = 5;
+}
+
+message UploadFileRequest {
+  bytes data = 1;
+  string filename = 2;
+  string ext = 3;
+  string mime_type = 4;
+}
+
+message UploadFileResponse {
+  File file = 1;
+}
+
+message GetFileRequest {
+  uint32 id = 1;
+}
+
+message GetFileResponse {
+  File file = 1;
+}

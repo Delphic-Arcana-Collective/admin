@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+package fund_flow.v1;
+
+option go_package = "processDelphicData/proto/api/fund_flow/v1;fundflowv1";
+
+service FundFlowService {
+  rpc ListFundFlows(ListFundFlowsRequest) returns (ListFundFlowsResponse);
+  rpc GetFundFlow(GetFundFlowRequest) returns (GetFundFlowResponse);
+  rpc GetSummary(GetSummaryRequest) returns (GetSummaryResponse);
+  rpc GetMonthlyStats(GetMonthlyStatsRequest) returns (GetMonthlyStatsResponse);
+  rpc CreateFundFlow(CreateFundFlowRequest) returns (CreateFundFlowResponse);
+  rpc UpdateFundFlow(UpdateFundFlowRequest) returns (UpdateFundFlowResponse);
+  rpc DeleteFundFlow(DeleteFundFlowRequest) returns (DeleteFundFlowResponse);
+}
+
+message FundFlow {
+  uint32 id = 1;
+  string transaction_date = 2;
+  string item = 3;
+  double amount = 4;
+  string remark = 5;
+  string created_at = 6;
+}
+
+message ListFundFlowsRequest {
+  string start_date = 1;
+  string end_date = 2;
+  string item = 3;
+}
+
+message ListFundFlowsResponse {
+  repeated FundFlow fund_flows = 1;
+}
+
+message GetFundFlowRequest {
+  uint32 id = 1;
+}
+
+message GetFundFlowResponse {
+  FundFlow fund_flow = 1;
+}
+
+message GetSummaryRequest {
+  string start_date = 1;
+  string end_date = 2;
+}
+
+message GetSummaryResponse {
+  double total_income = 1;
+  double total_expense = 2;
+  double balance = 3;
+}
+
+message MonthlyStat {
+  int32 year = 1;
+  int32 month = 2;
+  double income = 3;
+  double expense = 4;
+}
+
+message GetMonthlyStatsRequest {}
+
+message GetMonthlyStatsResponse {
+  repeated MonthlyStat stats = 1;
+}
+
+message CreateFundFlowRequest {
+  FundFlow fund_flow = 1;
+}
+
+message CreateFundFlowResponse {
+  FundFlow fund_flow = 1;
+}
+
+message UpdateFundFlowRequest {
+  uint32 id = 1;
+  FundFlow fund_flow = 2;
+}
+
+message UpdateFundFlowResponse {
+  FundFlow fund_flow = 1;
+}
+
+message DeleteFundFlowRequest {
+  uint32 id = 1;
+}
+
+message DeleteFundFlowResponse {
+  string message = 1;
+}
