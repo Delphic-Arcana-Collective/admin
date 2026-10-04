@@ -1,8 +1,15 @@
 package service
 
 import (
+	"errors"
 	"time"
+
+	"gorm.io/gorm"
 )
+
+func errorsIsRecordNotFound(err error) bool {
+	return errors.Is(err, gorm.ErrRecordNotFound)
+}
 
 func formatTime(t time.Time) string {
 	if t.IsZero() {

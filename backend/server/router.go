@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"processDelphicData/proto/api/audit_log/v1/auditlogv1connect"
-	"processDelphicData/proto/api/calendar/v1/calendarv1connect"
 	"processDelphicData/proto/api/dashboard/v1/dashboardv1connect"
 	"processDelphicData/proto/api/exhibition/v1/exhibitionv1connect"
 	"processDelphicData/proto/api/file/v1/filev1connect"
@@ -36,9 +35,6 @@ func newApp(staticDir string) *App {
 // Connect pattern: path, handler := xxxv1connect.NewXxxServiceHandler(svc); mux.Handle(path, handler)
 func configRouters(mux *http.ServeMux, svc *Services) {
 	path, handler := healthv1connect.NewHealthServiceHandler(svc.Health)
-	mux.Handle(path, handler)
-
-	path, handler = calendarv1connect.NewCalendarServiceHandler(svc.Calendar)
 	mux.Handle(path, handler)
 
 	path, handler = dashboardv1connect.NewDashboardServiceHandler(svc.Dashboard)

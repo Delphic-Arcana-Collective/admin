@@ -2,7 +2,7 @@
 
 ## 概述
 
-德尔菲秘仪社后台：资金流水、商品库存、订单、展会、日历、NFC。Monorepo：`backend/`（Go + ConnectRPC + GORM + PostgreSQL，托管静态前端）+ `frontend/`（Next.js 静态导出 SPA）。
+德尔菲秘仪社后台：资金流水、商品库存、订单、展会、NFC。Monorepo：`backend/`（Go + ConnectRPC + GORM + PostgreSQL，托管静态前端）+ `frontend/`（Next.js 静态导出 SPA）。
 
 ## 技术栈
 
@@ -49,7 +49,6 @@ scripts/
 | 服务 | 包路径 |
 |------|--------|
 | Health | `health.v1.HealthService` |
-| Calendar | `calendar.v1.CalendarService` |
 | Dashboard | `dashboard.v1.DashboardService` |
 | FundFlow | `fund_flow.v1.FundFlowService` |
 | Exhibition | `exhibition.v1.ExhibitionService` |
@@ -69,7 +68,7 @@ scripts/
 FundFlow ──► Dashboard（流水增删改联动更新总余额，事务内完成）
 Product ──1:N── SKU ──1:1── Inventory ──1:N── InventoryLock ──M:1── Order
 Order.order_items 为 JSON 列
-CalendarEvent、Exhibition 独立表
+Exhibition 独立表
 ```
 
 ## HTTP 请求处理
@@ -89,14 +88,6 @@ CalendarEvent、Exhibition 独立表
 ## 认证
 
 无真实鉴权。登录页写 `sessionStorage.delphic_logged_in`；后端不校验 token。
-
-## 日历前端
-
-通过 Connect RPC 调用 `calendar.v1.CalendarService`（`frontend/src/lib/api.ts`）：
-
-- **月视图**：`ListEvents` 带 `start_date` / `end_date`
-- **列表视图**：`ListEvents` 无日期过滤，按日期倒序
-- 两视图独立状态，增删改需同步更新
 
 ## 已知限制
 

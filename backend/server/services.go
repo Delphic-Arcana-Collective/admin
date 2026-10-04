@@ -5,7 +5,6 @@ import "processDelphicData/service"
 // Services holds Connect RPC handler implementations.
 type Services struct {
 	Health     *service.HealthServiceHandler
-	Calendar   *service.CalendarServiceHandler
 	Dashboard  *service.DashboardServiceHandler
 	FundFlow   *service.FundFlowServiceHandler
 	Exhibition *service.ExhibitionServiceHandler
@@ -19,7 +18,6 @@ type Services struct {
 func NewServices() *Services {
 	return &Services{
 		Health:     service.NewHealthServiceHandler(),
-		Calendar:   service.NewCalendarServiceHandler(),
 		Dashboard:  service.NewDashboardServiceHandler(),
 		FundFlow:   service.NewFundFlowServiceHandler(),
 		Exhibition: service.NewExhibitionServiceHandler(),

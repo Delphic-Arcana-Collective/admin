@@ -48,7 +48,6 @@ func Migrate() error {
 		&Inventory{},
 		&InventoryLock{},
 		&Order{},
-		&CalendarEvent{},
 		&File{},
 		&AuditLog{},
 	)

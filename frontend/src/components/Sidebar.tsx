@@ -12,7 +12,6 @@ import {
   X,
   Sparkles,
   Store,
-  Calendar,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -90,13 +89,6 @@ const sidebarItems: SidebarItem[] = [
     icon: Sparkles,
     name: "store",
     path: "/store",
-    type: "route",
-  },
-  {
-    title: "日历",
-    icon: Calendar,
-    name: "calendar",
-    path: "/calendar",
     type: "route",
   },
   {
