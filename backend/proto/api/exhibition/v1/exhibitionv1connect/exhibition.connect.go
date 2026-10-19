@@ -51,9 +51,6 @@ const (
 	// ExhibitionServiceDeleteExhibitionProcedure is the fully-qualified name of the ExhibitionService's
 	// DeleteExhibition RPC.
 	ExhibitionServiceDeleteExhibitionProcedure = "/exhibition.v1.ExhibitionService/DeleteExhibition"
-	// ExhibitionServiceExtractFromImageProcedure is the fully-qualified name of the ExhibitionService's
-	// ExtractFromImage RPC.
-	ExhibitionServiceExtractFromImageProcedure = "/exhibition.v1.ExhibitionService/ExtractFromImage"
 )
 
 // ExhibitionServiceClient is a client for the exhibition.v1.ExhibitionService service.
@@ -64,7 +61,6 @@ type ExhibitionServiceClient interface {
 	CreateExhibition(context.Context, *connect.Request[v1.CreateExhibitionRequest]) (*connect.Response[v1.CreateExhibitionResponse], error)
 	UpdateExhibition(context.Context, *connect.Request[v1.UpdateExhibitionRequest]) (*connect.Response[v1.UpdateExhibitionResponse], error)
 	DeleteExhibition(context.Context, *connect.Request[v1.DeleteExhibitionRequest]) (*connect.Response[v1.DeleteExhibitionResponse], error)
-	ExtractFromImage(context.Context, *connect.Request[v1.ExtractFromImageRequest]) (*connect.Response[v1.ExtractFromImageResponse], error)
 }
 
 // NewExhibitionServiceClient constructs a client for the exhibition.v1.ExhibitionService service.
@@ -114,12 +110,6 @@ func NewExhibitionServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(exhibitionServiceMethods.ByName("DeleteExhibition")),
 			connect.WithClientOptions(opts...),
 		),
-		extractFromImage: connect.NewClient[v1.ExtractFromImageRequest, v1.ExtractFromImageResponse](
-			httpClient,
-			baseURL+ExhibitionServiceExtractFromImageProcedure,
-			connect.WithSchema(exhibitionServiceMethods.ByName("ExtractFromImage")),
-			connect.WithClientOptions(opts...),
-		),
 	}
 }
 
@@ -131,7 +121,6 @@ type exhibitionServiceClient struct {
 	createExhibition   *connect.Client[v1.CreateExhibitionRequest, v1.CreateExhibitionResponse]
 	updateExhibition   *connect.Client[v1.UpdateExhibitionRequest, v1.UpdateExhibitionResponse]
 	deleteExhibition   *connect.Client[v1.DeleteExhibitionRequest, v1.DeleteExhibitionResponse]
-	extractFromImage   *connect.Client[v1.ExtractFromImageRequest, v1.ExtractFromImageResponse]
 }
 
 // ListExhibitions calls exhibition.v1.ExhibitionService.ListExhibitions.
@@ -164,11 +153,6 @@ func (c *exhibitionServiceClient) DeleteExhibition(ctx context.Context, req *con
 	return c.deleteExhibition.CallUnary(ctx, req)
 }
 
-// ExtractFromImage calls exhibition.v1.ExhibitionService.ExtractFromImage.
-func (c *exhibitionServiceClient) ExtractFromImage(ctx context.Context, req *connect.Request[v1.ExtractFromImageRequest]) (*connect.Response[v1.ExtractFromImageResponse], error) {
-	return c.extractFromImage.CallUnary(ctx, req)
-}
-
 // ExhibitionServiceHandler is an implementation of the exhibition.v1.ExhibitionService service.
 type ExhibitionServiceHandler interface {
 	ListExhibitions(context.Context, *connect.Request[v1.ListExhibitionsRequest]) (*connect.Response[v1.ListExhibitionsResponse], error)
@@ -177,7 +161,6 @@ type ExhibitionServiceHandler interface {
 	CreateExhibition(context.Context, *connect.Request[v1.CreateExhibitionRequest]) (*connect.Response[v1.CreateExhibitionResponse], error)
 	UpdateExhibition(context.Context, *connect.Request[v1.UpdateExhibitionRequest]) (*connect.Response[v1.UpdateExhibitionResponse], error)
 	DeleteExhibition(context.Context, *connect.Request[v1.DeleteExhibitionRequest]) (*connect.Response[v1.DeleteExhibitionResponse], error)
-	ExtractFromImage(context.Context, *connect.Request[v1.ExtractFromImageRequest]) (*connect.Response[v1.ExtractFromImageResponse], error)
 }
 
 // NewExhibitionServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -223,12 +206,6 @@ func NewExhibitionServiceHandler(svc ExhibitionServiceHandler, opts ...connect.H
 		connect.WithSchema(exhibitionServiceMethods.ByName("DeleteExhibition")),
 		connect.WithHandlerOptions(opts...),
 	)
-	exhibitionServiceExtractFromImageHandler := connect.NewUnaryHandler(
-		ExhibitionServiceExtractFromImageProcedure,
-		svc.ExtractFromImage,
-		connect.WithSchema(exhibitionServiceMethods.ByName("ExtractFromImage")),
-		connect.WithHandlerOptions(opts...),
-	)
 	return "/exhibition.v1.ExhibitionService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ExhibitionServiceListExhibitionsProcedure:
@@ -243,8 +220,6 @@ func NewExhibitionServiceHandler(svc ExhibitionServiceHandler, opts ...connect.H
 			exhibitionServiceUpdateExhibitionHandler.ServeHTTP(w, r)
 		case ExhibitionServiceDeleteExhibitionProcedure:
 			exhibitionServiceDeleteExhibitionHandler.ServeHTTP(w, r)
-		case ExhibitionServiceExtractFromImageProcedure:
-			exhibitionServiceExtractFromImageHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -276,8 +251,4 @@ func (UnimplementedExhibitionServiceHandler) UpdateExhibition(context.Context, *
 
 func (UnimplementedExhibitionServiceHandler) DeleteExhibition(context.Context, *connect.Request[v1.DeleteExhibitionRequest]) (*connect.Response[v1.DeleteExhibitionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("exhibition.v1.ExhibitionService.DeleteExhibition is not implemented"))
-}
-
-func (UnimplementedExhibitionServiceHandler) ExtractFromImage(context.Context, *connect.Request[v1.ExtractFromImageRequest]) (*connect.Response[v1.ExtractFromImageResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("exhibition.v1.ExhibitionService.ExtractFromImage is not implemented"))
 }

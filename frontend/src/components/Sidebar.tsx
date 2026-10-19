@@ -5,13 +5,9 @@ import {
   ChevronRight,
   Activity,
   Wallet,
-  Settings,
-  FileText,
   LayoutDashboard,
   Link2,
   X,
-  Sparkles,
-  Store,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -55,25 +51,6 @@ const sidebarItems: SidebarItem[] = [
     type: "route",
   },
   {
-    title: "商品管理",
-    icon: Store,
-    type: "div",
-    children: [
-      {
-        title: "商品列表",
-        name: "products",
-        path: "/products",
-        type: "route",
-      },
-      {
-        title: "订单",
-        name: "orders",
-        path: "/orders",
-        type: "route",
-      },
-    ],
-  },
-  {
     type: "divider",
     name: "",
   },
@@ -83,37 +60,6 @@ const sidebarItems: SidebarItem[] = [
     name: "nfc",
     path: "/nfc",
     type: "route",
-  },
-  {
-    title: "出摊！",
-    icon: Sparkles,
-    name: "store",
-    path: "/store",
-    type: "route",
-  },
-  {
-    type: "divider",
-    name: "",
-  },
-  {
-    title: "系统日志",
-    icon: FileText,
-    name: "logs",
-    path: "/logs",
-    type: "route",
-  },
-  {
-    title: "设置",
-    icon: Settings,
-    type: "div",
-    children: [
-      {
-        title: "系统设置",
-        name: "settings",
-        path: "/settings",
-        type: "route",
-      },
-    ],
   },
 ];
 

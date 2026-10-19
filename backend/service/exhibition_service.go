@@ -262,44 +262,6 @@ func (h *ExhibitionServiceHandler) DeleteExhibition(
 	}), nil
 }
 
-func (h *ExhibitionServiceHandler) ExtractFromImage(
-	_ context.Context,
-	req *connect.Request[exhibitionv1.ExtractFromImageRequest],
-) (*connect.Response[exhibitionv1.ExtractFromImageResponse], error) {
-	if req.Msg.GetFileId() == 0 {
-		return nil, status.Error(codes.InvalidArgument, "file_id is required")
-	}
-
-	result, err := ExtractExhibitionFromImage(uint(req.Msg.GetFileId()))
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-
-	return connect.NewResponse(&exhibitionv1.ExtractFromImageResponse{
-		Data: toProtoExtractedExhibition(result),
-	}), nil
-}
-
-func toProtoExtractedExhibition(e *ExtractedExhibition) *exhibitionv1.ExtractedExhibition {
-	if e == nil {
-		return nil
-	}
-	return &exhibitionv1.ExtractedExhibition{
-		Name:        e.Name,
-		Region:      e.Region,
-		Location:    e.Location,
-		Type:        e.Type,
-		StartDate:   e.StartDate,
-		EndDate:     e.EndDate,
-		BoothFee:    e.BoothFee,
-		Contact:     e.Contact,
-		Description: e.Description,
-		Link:        e.Link,
-		Remark:      e.Remark,
-		Status:      e.Status,
-	}
-}
-
 func toProtoExhibitions(exhibitions []store.Exhibition) []*exhibitionv1.Exhibition {
 	out := make([]*exhibitionv1.Exhibition, 0, len(exhibitions))
 	for _, e := range exhibitions {

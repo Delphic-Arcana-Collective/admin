@@ -11,7 +11,6 @@ service ExhibitionService {
   rpc CreateExhibition(CreateExhibitionRequest) returns (CreateExhibitionResponse);
   rpc UpdateExhibition(UpdateExhibitionRequest) returns (UpdateExhibitionResponse);
   rpc DeleteExhibition(DeleteExhibitionRequest) returns (DeleteExhibitionResponse);
-  rpc ExtractFromImage(ExtractFromImageRequest) returns (ExtractFromImageResponse);
 }
 
 message File {
@@ -125,27 +124,4 @@ message DeleteExhibitionRequest {
 
 message DeleteExhibitionResponse {
   string message = 1;
-}
-
-message ExtractedExhibition {
-  string name = 1;
-  string region = 2;
-  string location = 3;
-  string type = 4;
-  string start_date = 5;
-  string end_date = 6;
-  string booth_fee = 7;
-  string contact = 8;
-  string description = 9;
-  string link = 10;
-  string remark = 11;
-  string status = 12;
-}
-
-message ExtractFromImageRequest {
-  uint32 file_id = 1;
-}
-
-message ExtractFromImageResponse {
-  ExtractedExhibition data = 1;
 }

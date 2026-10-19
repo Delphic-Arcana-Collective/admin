@@ -43,13 +43,7 @@ func Migrate() error {
 		&Exhibition{},
 		&ExhibitionAttachment{},
 		&Dashboard{},
-		&Product{},
-		&SKU{},
-		&Inventory{},
-		&InventoryLock{},
-		&Order{},
 		&File{},
-		&AuditLog{},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to migrate: %w", err)
@@ -64,35 +58,8 @@ func Migrate() error {
 	return nil
 }
 
-// migrateLegacyData migrates old Product.Image bytea and Exhibition.CoverImage/Attachments
-// to the new files-based storage. No-op after first run (columns already dropped).
+// migrateLegacyData drops leftover Exhibition image columns. No-op after the first run.
 func migrateLegacyData() error {
-	// Migrate Product.Image bytea → files table
-	if DB.Migrator().HasColumn(&Product{}, "image") {
-		log.Println("Migrating legacy Product.Image data...")
-		var products []struct {
-			ID    string `gorm:"column:id"`
-			Image []byte `gorm:"column:image"`
-		}
-		if err := DB.Table("products").Where("image IS NOT NULL AND image != ''").Find(&products).Error; err != nil {
-			return fmt.Errorf("failed to query legacy product images: %w", err)
-		}
-		for _, p := range products {
-			f := File{Data: p.Image, Ext: ".jpg", MimeType: "image/jpeg"}
-			if err := DB.Create(&f).Error; err != nil {
-				return fmt.Errorf("failed to create file for product %s: %w", p.ID, err)
-			}
-			if err := DB.Table("products").Where("id = ?", p.ID).Update("cover_file_id", f.ID).Error; err != nil {
-				return fmt.Errorf("failed to update product %s: %w", p.ID, err)
-			}
-		}
-		if err := DB.Migrator().DropColumn(&Product{}, "image"); err != nil {
-			return fmt.Errorf("drop product.image column: %w", err)
-		}
-		log.Printf("Migrated %d product images to files table", len(products))
-	}
-
-	// Drop legacy Exhibition columns (files no longer on disk)
 	if DB.Migrator().HasColumn(&Exhibition{}, "cover_image") {
 		log.Println("Dropping legacy Exhibition.CoverImage/Attachments columns...")
 		if err := DB.Migrator().DropColumn(&Exhibition{}, "cover_image"); err != nil {

@@ -8,9 +8,6 @@ type Services struct {
 	Dashboard  *service.DashboardServiceHandler
 	FundFlow   *service.FundFlowServiceHandler
 	Exhibition *service.ExhibitionServiceHandler
-	Product    *service.ProductServiceHandler
-	Order      *service.OrderServiceHandler
-	AuditLog   *service.AuditLogServiceHandler
 	File       *service.FileServiceHandler
 }
 
@@ -21,9 +18,6 @@ func NewServices() *Services {
 		Dashboard:  service.NewDashboardServiceHandler(),
 		FundFlow:   service.NewFundFlowServiceHandler(),
 		Exhibition: service.NewExhibitionServiceHandler(),
-		Product:    service.NewProductServiceHandler(),
-		Order:      service.NewOrderServiceHandler(),
-		AuditLog:   service.NewAuditLogServiceHandler(),
 		File:       service.NewFileServiceHandler(),
 	}
 }

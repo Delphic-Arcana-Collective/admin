@@ -1,6 +1,6 @@
 # Delphic Admin
 
-Back-office system for Delphic Arcana Collection: fund flows, product inventory, orders, exhibitions, and NFC links.
+Back-office system for Delphic Arcana Collection: fund flows, exhibitions, and NFC links.
 
 Monorepo: `backend/` (Go + ConnectRPC + GORM + PostgreSQL) + `frontend/` (Next.js static export SPA).
 

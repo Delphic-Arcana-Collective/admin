@@ -3,26 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/components/Toast";
 import { LoadingOverlay } from "@/components/LoadingSpinner";
-import { Cpu, MemoryStick, Gauge, Network } from "lucide-react";
-import { API_BASE } from "@/config";
 import { getDashboard, getMonthlyStats, type DashboardData, type MonthlyStat } from "@/lib/api";
-
-interface SystemInfo {
-  hostname: string;
-  uptime: number;
-  cpu_percent: number;
-  memory_total: number;
-  memory_used: number;
-  memory_pct: number;
-  disk_total: number;
-  disk_used: number;
-  disk_pct: number;
-  net_sent: number;
-  net_recv: number;
-  net_sent_rate: number;
-  net_recv_rate: number;
-  timestamp: string;
-}
 
 function useCountUp(target: number, duration: number = 1000) {
   const [count, setCount] = useState(0);
@@ -64,159 +45,6 @@ function useCountUp(target: number, duration: number = 1000) {
   }, [target, duration]);
 
   return count;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-}
-
-function formatBytesPerSec(bytesPerSec: number): string {
-  if (bytesPerSec === 0) return "0 B/s";
-  const k = 1024;
-  const sizes = ["B/s", "KB/s", "MB/s", "GB/s"];
-  const i = Math.floor(Math.log(bytesPerSec) / Math.log(k));
-  return parseFloat((bytesPerSec / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-}
-
-function formatUptime(seconds: number): string {
-  const d = Math.floor(seconds / 86400);
-  const h = Math.floor((seconds % 86400) / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (d > 0) return `${d}天 ${h}小时`;
-  if (h > 0) return `${h}小时 ${m}分`;
-  return `${m}分钟`;
-}
-
-function GaugeBar({ pct, label }: { pct: number; label: string }) {
-  const color =
-    pct > 90 ? "bg-red-500" : pct > 70 ? "bg-yellow-500" : "bg-blue-500";
-  return (
-    <div className="flex items-center gap-2 text-xs">
-      <span className="w-16 shrink-0 text-control-light">{label}</span>
-      <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-500 ${color}`}
-          style={{ width: `${Math.min(pct, 100)}%` }}
-        />
-      </div>
-      <span className="w-14 text-right text-control font-medium tabular-nums">
-        {pct.toFixed(1)}%
-      </span>
-    </div>
-  );
-}
-
-// 网络速度实时波动图
-function NetGraph({ sysInfo }: { sysInfo: SystemInfo | null }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const ptsRef = useRef<{ recv: number; sent: number }[]>([]);
-  const rafRef = useRef<number>(0);
-
-  // 每次 sysInfo 更新时追加数据点
-  useEffect(() => {
-    if (!sysInfo) return;
-    ptsRef.current = [
-      ...ptsRef.current.slice(-59),
-      { recv: sysInfo.net_recv_rate, sent: sysInfo.net_sent_rate },
-    ];
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const pts = ptsRef.current;
-    if (pts.length < 2) return;
-
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
-    const w = rect.width;
-    const h = rect.height;
-    ctx.clearRect(0, 0, w, h);
-
-    let maxVal = 1;
-    for (const p of pts) maxVal = Math.max(maxVal, p.recv, p.sent);
-
-    const pad = 2;
-    const drawW = w - pad * 2;
-    const drawH = h - pad * 2;
-    const stepX = drawW / (pts.length - 1);
-    const toY = (v: number) => pad + drawH - (v / maxVal) * drawH;
-
-    const color = "#4f46e5";
-
-    // draw a smooth area+line for given key
-    function drawSmoothR(ctx2: CanvasRenderingContext2D, arr: typeof pts) { var n = arr.length; if (n < 2) return; if (n === 2) { ctx2.lineTo(pad + stepX, toY(arr[1].recv)); return; } for (var i = 0; i < n - 1; i++) { var x0 = i > 0 ? pad + (i - 1) * stepX : pad; var y0 = i > 0 ? toY(arr[i - 1].recv) : toY(arr[0].recv); var x1 = pad + i * stepX, y1 = toY(arr[i].recv); var x2 = pad + (i + 1) * stepX, y2 = toY(arr[i + 1].recv); var x3 = i < n - 2 ? pad + (i + 2) * stepX : x2; var y3 = i < n - 2 ? toY(arr[i + 2].recv) : y2; var t = 0.3; ctx2.bezierCurveTo(x1+(x2-x0)*t, y1+(y2-y0)*t, x2-(x3-x1)*t, y2-(y3-y1)*t, x2, y2); } } function drawSmoothS(ctx2: CanvasRenderingContext2D, arr: typeof pts) { var n = arr.length; if (n < 2) return; if (n === 2) { ctx2.lineTo(pad + stepX, toY(arr[1].sent)); return; } for (var i = 0; i < n - 1; i++) { var x0 = i > 0 ? pad + (i - 1) * stepX : pad; var y0 = i > 0 ? toY(arr[i - 1].sent) : toY(arr[0].sent); var x1 = pad + i * stepX, y1 = toY(arr[i].sent); var x2 = pad + (i + 1) * stepX, y2 = toY(arr[i + 1].sent); var x3 = i < n - 2 ? pad + (i + 2) * stepX : x2; var y3 = i < n - 2 ? toY(arr[i + 2].sent) : y2; var t = 0.3; ctx2.bezierCurveTo(x1+(x2-x0)*t, y1+(y2-y0)*t, x2-(x3-x1)*t, y2-(y3-y1)*t, x2, y2); } }
-
-    // recv 面积（紫色渐变）
-    var grad = ctx.createLinearGradient(0, pad, 0, pad + drawH);
-    grad.addColorStop(0, color + "80");
-    grad.addColorStop(1, color + "05");
-    ctx.beginPath();
-    ctx.moveTo(pad, pad + drawH);
-    drawSmoothR(ctx, pts);
-    ctx.lineTo(pad + (pts.length - 1) * stepX, pad + drawH);
-    ctx.closePath();
-    ctx.fillStyle = grad;
-    ctx.fill();
-
-    // recv 曲线
-    ctx.beginPath();
-    drawSmoothR(ctx, pts);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    // sent 面积（绿色渐变）
-    var grad2 = ctx.createLinearGradient(0, pad, 0, pad + drawH);
-    grad2.addColorStop(0, "#22c55e70");
-    grad2.addColorStop(1, "#22c55e05");
-    ctx.beginPath();
-    ctx.moveTo(pad, pad + drawH);
-    drawSmoothS(ctx, pts);
-    ctx.lineTo(pad + (pts.length - 1) * stepX, pad + drawH);
-    ctx.closePath();
-    ctx.fillStyle = grad2;
-    ctx.fill();
-
-    // sent 曲线
-    ctx.beginPath();
-    drawSmoothS(ctx, pts);
-    ctx.strokeStyle = "#22c55e";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-  }, [sysInfo]);
-
-  const last = sysInfo;
-
-  return (
-    <div className="pt-1">
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-1 text-xs text-control-light">
-          <Network className="w-3.5 h-3.5" />
-          <span>网络速度</span>
-        </div>
-        {last && (
-          <div className="flex items-center gap-3 text-[11px] leading-none">
-            <span className="text-[#4f46e5]">↓ {formatBytesPerSec(last.net_recv_rate)}</span>
-            <span className="text-[#22c55e]">↑ {formatBytesPerSec(last.net_sent_rate)}</span>
-          </div>
-        )}
-      </div>
-      <canvas
-        ref={canvasRef}
-        className="w-full h-16 rounded-xs"
-        style={{ display: "block" }}
-      />
-    </div>
-  );
 }
 
 // SVG 折线图组件
@@ -339,7 +167,6 @@ function LineChart({
 export default function Home() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [sysInfo, setSysInfo] = useState<SystemInfo | null>(null);
   const [monthlyStats, setMonthlyStats] = useState<MonthlyStat[]>([]);
   const { pushNotification } = useToast();
   const animatedBalance = useCountUp(data?.total_balance || 0, 1000);
@@ -390,55 +217,6 @@ export default function Home() {
       cancelled = true;
     };
   }, [pushNotification]);
-
-  // WebSocket 连接 - 系统监控
-  useEffect(() => {
-    let wsUrl: string;
-    if (API_BASE) {
-      const protocol = API_BASE.startsWith("https") ? "wss" : "ws";
-      const wsBase = API_BASE.replace(/^https?:\/\//, "");
-      wsUrl = `${protocol}://${wsBase}/api/ws/monitor`;
-    } else {
-      const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-      wsUrl = `${protocol}//${location.host}/api/ws/monitor`;
-    }
-
-    let ws: WebSocket | null = null;
-    let reconnectTimer: ReturnType<typeof setTimeout>;
-    let closed = false;
-
-    function connect() {
-      if (closed) return;
-      ws = new WebSocket(wsUrl);
-
-      ws.onmessage = (event) => {
-        try {
-          const info = JSON.parse(event.data) as SystemInfo;
-          setSysInfo(info);
-        } catch {
-          // ignore parse errors
-        }
-      };
-
-      ws.onclose = () => {
-        if (!closed) {
-          reconnectTimer = setTimeout(connect, 5000);
-        }
-      };
-
-      ws.onerror = () => {
-        ws?.close();
-      };
-    }
-
-    connect();
-
-    return () => {
-      closed = true;
-      clearTimeout(reconnectTimer);
-      ws?.close();
-    };
-  }, []);
 
   // 构建图表数据：填充最近 12 个月
   const chartData = (() => {
@@ -523,53 +301,6 @@ export default function Home() {
             <div className="mt-3 text-xs text-control-light">
               最新流水产生时间：{formatDate(data?.last_flow_date || null)}
             </div>
-          </div>
-        </div>
-
-        {/* 系统监控卡片 */}
-        <div className="w-full max-w-md">
-          <div className="border border-block-border rounded-xs p-3 sm:p-4">
-            <div className="text-sm text-control mb-3">系统状态</div>
-            {sysInfo ? (
-              <div className="space-y-3">
-                <div>
-                  <div className="flex items-center gap-1 text-xs text-control-light mb-1">
-                    <Cpu className="w-3.5 h-3.5" />
-                    <span>CPU</span>
-                  </div>
-                  <GaugeBar pct={sysInfo.cpu_percent} label="" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-1 text-xs text-control-light mb-1">
-                    <MemoryStick className="w-3.5 h-3.5" />
-                    <span>内存</span>
-                    <span className="text-control ml-auto">
-                      {formatBytes(sysInfo.memory_used)} / {formatBytes(sysInfo.memory_total)}
-                    </span>
-                  </div>
-                  <GaugeBar pct={sysInfo.memory_pct} label="" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-1 text-xs text-control-light mb-1">
-                    <Gauge className="w-3.5 h-3.5" />
-                    <span>硬盘</span>
-                    <span className="text-control ml-auto">
-                      {formatBytes(sysInfo.disk_used)} / {formatBytes(sysInfo.disk_total)}
-                    </span>
-                  </div>
-                  <GaugeBar pct={sysInfo.disk_pct} label="" />
-                </div>
-                <NetGraph sysInfo={sysInfo} />
-                <div className="pt-1 text-xs text-control-light flex gap-3">
-                  <span>{sysInfo.hostname}</span>
-                  <span>已运行 {formatUptime(sysInfo.uptime)}</span>
-                </div>
-              </div>
-            ) : (
-              <div className="text-xs text-control-light">
-                等待连接...
-              </div>
-            )}
           </div>
         </div>
 

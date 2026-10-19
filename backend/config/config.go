@@ -10,7 +10,6 @@ import (
 type Config struct {
 	Database DatabaseConfig `yaml:"database"`
 	Server   ServerConfig   `yaml:"server"`
-	Ai       AiConfig       `yaml:"ai"`
 }
 
 type DatabaseConfig struct {
@@ -24,18 +23,6 @@ type DatabaseConfig struct {
 type ServerConfig struct {
 	Port      int    `yaml:"port"`
 	StaticDir string `yaml:"static_dir"`
-}
-
-type AiConfig struct {
-	DefaultProvider string `yaml:"default_provider"`
-
-	OpenAIEndpoint string `yaml:"openai_endpoint"`
-	OpenAIKey      string `yaml:"openai_key"`
-	OpenAIModel    string `yaml:"openai_model"`
-
-	GoogleEndpoint string `yaml:"google_endpoint"`
-	GoogleKey      string `yaml:"google_key"`
-	GoogleModel    string `yaml:"google_model"`
 }
 
 var cfg Config
@@ -54,23 +41,6 @@ func Load(path string) error {
 		cfg.Server.StaticDir = v
 	}
 
-	// Fill in defaults
-	if cfg.Ai.DefaultProvider == "" {
-		cfg.Ai.DefaultProvider = "openai"
-	}
-	if cfg.Ai.OpenAIEndpoint == "" {
-		cfg.Ai.OpenAIEndpoint = "https://api.openai.com/v1"
-	}
-	if cfg.Ai.OpenAIModel == "" {
-		cfg.Ai.OpenAIModel = "gpt-4o"
-	}
-	if cfg.Ai.GoogleEndpoint == "" {
-		cfg.Ai.GoogleEndpoint = "https://generativelanguage.googleapis.com/v1beta"
-	}
-	if cfg.Ai.GoogleModel == "" {
-		cfg.Ai.GoogleModel = "gemini-2.0-flash-exp"
-	}
-
 	return nil
 }
 
@@ -84,8 +54,4 @@ func GetDatabase() DatabaseConfig {
 
 func GetServer() ServerConfig {
 	return cfg.Server
-}
-
-func GetAi() AiConfig {
-	return cfg.Ai
 }

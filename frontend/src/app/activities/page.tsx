@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, Plus, SlidersHorizontal, Link as LinkIcon, Image as ImageIcon, Maximize2, X, Sparkles, Loader2 } from "lucide-react";
+import { Search, Plus, SlidersHorizontal, Link as LinkIcon, Image as ImageIcon, Maximize2, X } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { LoadingOverlay } from "@/components/LoadingSpinner";
 import { ActionDropdown } from "@/components/ActionDropdown";
@@ -11,7 +11,6 @@ import {
   createExhibition,
   updateExhibition,
   deleteExhibition,
-  extractExhibitionFromImage,
   uploadFile,
   fetchFileAsDataUrl,
   type Exhibition,
@@ -110,10 +109,6 @@ function ExhibitionModal({
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
   const [existingAttachmentIds, setExistingAttachmentIds] = useState<number[]>([]);
-
-  // AI extraction state
-  const [aiExtracting, setAiExtracting] = useState(false);
-  const [aiUploadedFileId, setAiUploadedFileId] = useState<number | null>(null);
 
   const wasOpenRef = useRef(false);
 
@@ -233,81 +228,6 @@ function ExhibitionModal({
     }
   };
 
-  // AI extraction handler
-  const handleAiExtract = async () => {
-    let fileId: number | null = aiUploadedFileId;
-
-    if (!fileId) {
-      if (!coverImage && !coverFileId) {
-        pushNotification({
-          style: "error",
-          title: "请先上传封面图片",
-          description: "需要图片才能进行 AI 提取",
-        });
-        return;
-      }
-
-      if (coverImage) {
-        // Upload image first, then use the returned file_id for extraction
-        setAiExtracting(true);
-        pushNotification({ style: "info", title: "正在上传图片..." });
-        try {
-          const uploaded = await uploadFile(coverImage);
-          fileId = uploaded.id;
-          setCoverFileId(fileId);
-          setAiUploadedFileId(fileId);
-        } catch {
-          pushNotification({ style: "error", title: "图片上传失败" });
-          setAiExtracting(false);
-          return;
-        }
-      } else if (coverFileId) {
-        fileId = coverFileId;
-        setAiUploadedFileId(coverFileId);
-      }
-    }
-
-    if (!fileId) {
-      pushNotification({ style: "error", title: "无法获取图片" });
-      setAiExtracting(false);
-      return;
-    }
-
-    setAiExtracting(true);
-    pushNotification({ style: "info", title: "正在请求 AI 分析图片...（约 10-30 秒）" });
-    try {
-      const extracted = await extractExhibitionFromImage(fileId!);
-      setFormData((prev) => ({
-        name: extracted.name || prev.name,
-        region: extracted.region || prev.region,
-        location: extracted.location || prev.location,
-        type: extracted.type || prev.type,
-        start_date: extracted.start_date || prev.start_date,
-        end_date: extracted.end_date || prev.end_date,
-        booth_fee: extracted.booth_fee || prev.booth_fee,
-        contact: extracted.contact || prev.contact,
-        description: extracted.description || prev.description,
-        link: extracted.link || prev.link,
-        remark: extracted.remark || prev.remark,
-        status: extracted.status || prev.status,
-      }));
-
-      pushNotification({
-        style: "success",
-        title: "AI 提取成功",
-        description: "已自动填写提取到的活动信息，请确认后提交",
-      });
-    } catch (err) {
-      pushNotification({
-        style: "error",
-        title: "AI 提取失败",
-        description: err instanceof Error ? err.message : "网络错误",
-      });
-    } finally {
-      setAiExtracting(false);
-    }
-  };
-
   return (
     <Modal
       isOpen={isOpen}
@@ -350,28 +270,12 @@ function ExhibitionModal({
                      if (file) {
                        setCoverImage(file);
                        setPreviewUrl(URL.createObjectURL(file));
-                       setAiUploadedFileId(null); // reset so AI re-uploads
                      }
                    }}
                  />
                </label>
                {previewUrl && (
                  <img src={previewUrl} alt="预览" className="w-16 h-16 object-cover rounded-xs border border-control-border" />
-               )}
-               {previewUrl && (
-                 <button
-                   type="button"
-                   disabled={aiExtracting}
-                   onClick={handleAiExtract}
-                   className="inline-flex items-center justify-center gap-1.5 px-3 py-2 border border-purple-300 rounded-xs text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 hover:border-purple-400 transition-colors cursor-pointer disabled:opacity-50 active:scale-95"
-                 >
-                   {aiExtracting ? (
-                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                   ) : (
-                     <Sparkles className="w-3.5 h-3.5" />
-                   )}
-                   {aiExtracting ? "提取中..." : "AI 提取"}
-                 </button>
                )}
              </div>
            </div>

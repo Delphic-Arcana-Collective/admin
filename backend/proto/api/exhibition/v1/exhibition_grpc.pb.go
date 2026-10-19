@@ -25,7 +25,6 @@ const (
 	ExhibitionService_CreateExhibition_FullMethodName   = "/exhibition.v1.ExhibitionService/CreateExhibition"
 	ExhibitionService_UpdateExhibition_FullMethodName   = "/exhibition.v1.ExhibitionService/UpdateExhibition"
 	ExhibitionService_DeleteExhibition_FullMethodName   = "/exhibition.v1.ExhibitionService/DeleteExhibition"
-	ExhibitionService_ExtractFromImage_FullMethodName   = "/exhibition.v1.ExhibitionService/ExtractFromImage"
 )
 
 // ExhibitionServiceClient is the client API for ExhibitionService service.
@@ -38,7 +37,6 @@ type ExhibitionServiceClient interface {
 	CreateExhibition(ctx context.Context, in *CreateExhibitionRequest, opts ...grpc.CallOption) (*CreateExhibitionResponse, error)
 	UpdateExhibition(ctx context.Context, in *UpdateExhibitionRequest, opts ...grpc.CallOption) (*UpdateExhibitionResponse, error)
 	DeleteExhibition(ctx context.Context, in *DeleteExhibitionRequest, opts ...grpc.CallOption) (*DeleteExhibitionResponse, error)
-	ExtractFromImage(ctx context.Context, in *ExtractFromImageRequest, opts ...grpc.CallOption) (*ExtractFromImageResponse, error)
 }
 
 type exhibitionServiceClient struct {
@@ -109,16 +107,6 @@ func (c *exhibitionServiceClient) DeleteExhibition(ctx context.Context, in *Dele
 	return out, nil
 }
 
-func (c *exhibitionServiceClient) ExtractFromImage(ctx context.Context, in *ExtractFromImageRequest, opts ...grpc.CallOption) (*ExtractFromImageResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ExtractFromImageResponse)
-	err := c.cc.Invoke(ctx, ExhibitionService_ExtractFromImage_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // ExhibitionServiceServer is the server API for ExhibitionService service.
 // All implementations must embed UnimplementedExhibitionServiceServer
 // for forward compatibility.
@@ -129,7 +117,6 @@ type ExhibitionServiceServer interface {
 	CreateExhibition(context.Context, *CreateExhibitionRequest) (*CreateExhibitionResponse, error)
 	UpdateExhibition(context.Context, *UpdateExhibitionRequest) (*UpdateExhibitionResponse, error)
 	DeleteExhibition(context.Context, *DeleteExhibitionRequest) (*DeleteExhibitionResponse, error)
-	ExtractFromImage(context.Context, *ExtractFromImageRequest) (*ExtractFromImageResponse, error)
 	mustEmbedUnimplementedExhibitionServiceServer()
 }
 
@@ -157,9 +144,6 @@ func (UnimplementedExhibitionServiceServer) UpdateExhibition(context.Context, *U
 }
 func (UnimplementedExhibitionServiceServer) DeleteExhibition(context.Context, *DeleteExhibitionRequest) (*DeleteExhibitionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteExhibition not implemented")
-}
-func (UnimplementedExhibitionServiceServer) ExtractFromImage(context.Context, *ExtractFromImageRequest) (*ExtractFromImageResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ExtractFromImage not implemented")
 }
 func (UnimplementedExhibitionServiceServer) mustEmbedUnimplementedExhibitionServiceServer() {}
 func (UnimplementedExhibitionServiceServer) testEmbeddedByValue()                           {}
@@ -290,24 +274,6 @@ func _ExhibitionService_DeleteExhibition_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ExhibitionService_ExtractFromImage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ExtractFromImageRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ExhibitionServiceServer).ExtractFromImage(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ExhibitionService_ExtractFromImage_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ExhibitionServiceServer).ExtractFromImage(ctx, req.(*ExtractFromImageRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // ExhibitionService_ServiceDesc is the grpc.ServiceDesc for ExhibitionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -338,10 +304,6 @@ var ExhibitionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteExhibition",
 			Handler:    _ExhibitionService_DeleteExhibition_Handler,
-		},
-		{
-			MethodName: "ExtractFromImage",
-			Handler:    _ExhibitionService_ExtractFromImage_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

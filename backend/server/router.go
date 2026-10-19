@@ -4,14 +4,11 @@ import (
 	"net/http"
 	"strings"
 
-	"processDelphicData/proto/api/audit_log/v1/auditlogv1connect"
 	"processDelphicData/proto/api/dashboard/v1/dashboardv1connect"
 	"processDelphicData/proto/api/exhibition/v1/exhibitionv1connect"
 	"processDelphicData/proto/api/file/v1/filev1connect"
 	"processDelphicData/proto/api/fund_flow/v1/fundflowv1connect"
 	"processDelphicData/proto/api/health/v1/healthv1connect"
-	"processDelphicData/proto/api/order/v1/orderv1connect"
-	"processDelphicData/proto/api/product/v1/productv1connect"
 )
 
 // App is the root HTTP handler: API routes via ServeMux, everything else static SPA.
@@ -46,20 +43,10 @@ func configRouters(mux *http.ServeMux, svc *Services) {
 	path, handler = exhibitionv1connect.NewExhibitionServiceHandler(svc.Exhibition)
 	mux.Handle(path, handler)
 
-	path, handler = productv1connect.NewProductServiceHandler(svc.Product)
-	mux.Handle(path, handler)
-
-	path, handler = orderv1connect.NewOrderServiceHandler(svc.Order)
-	mux.Handle(path, handler)
-
-	path, handler = auditlogv1connect.NewAuditLogServiceHandler(svc.AuditLog)
-	mux.Handle(path, handler)
-
 	path, handler = filev1connect.NewFileServiceHandler(svc.File)
 	mux.Handle(path, handler)
 
 	mux.HandleFunc("GET /health", HealthHandler)
-	mux.HandleFunc("GET /api/ws/monitor", HandleSystemMonitor)
 }
 
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -74,5 +61,5 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func isAPIRoute(path string) bool {
-	return strings.Contains(path, ".v1.") || path == "/health" || strings.HasPrefix(path, "/api/")
+	return strings.Contains(path, ".v1.") || path == "/health"
 }

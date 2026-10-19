@@ -2,7 +2,7 @@
 
 ## 概述
 
-德尔菲秘仪社后台：资金流水、商品库存、订单、展会、NFC。Monorepo：`backend/`（Go + ConnectRPC + GORM + PostgreSQL，托管静态前端）+ `frontend/`（Next.js 静态导出 SPA）。
+德尔菲秘仪社后台：资金流水、展会、NFC。Monorepo：`backend/`（Go + ConnectRPC + GORM + PostgreSQL，托管静态前端）+ `frontend/`（Next.js 静态导出 SPA）。
 
 ## 技术栈
 
@@ -30,7 +30,7 @@ backend/
   cmd/admin/   程序入口
   proto/       Protobuf 定义与 buf 配置
   service/     Connect RPC handler 实现
-  server/      services、router（configRouters）、middleware（Chain）、static、WebSocket
+  server/      services、router（configRouters）、middleware（Chain）、static
   store/       GORM 模型与 DB 操作
 frontend/
   out/             Next.js 静态导出（构建产物，不提交 Git）
@@ -49,23 +49,17 @@ frontend/
 | Dashboard | `dashboard.v1.DashboardService` |
 | FundFlow | `fund_flow.v1.FundFlowService` |
 | Exhibition | `exhibition.v1.ExhibitionService` |
-| Product | `product.v1.ProductService` |
-| Order | `order.v1.OrderService` |
-| AuditLog | `audit_log.v1.AuditLogService` |
 | File | `file.v1.FileService` |
 
 另有非 Connect 端点：
 
 - `GET /health` — 简单健康检查
-- `GET /api/ws/monitor` — 系统监控 WebSocket
 
 ## 数据关系
 
 ```
 FundFlow ──► Dashboard（流水增删改联动更新总余额，事务内完成）
-Product ──1:N── SKU ──1:1── Inventory ──1:N── InventoryLock ──M:1── Order
-Order.order_items 为 JSON 列
-Exhibition 独立表
+Exhibition ── 封面与附件指向 File
 ```
 
 ## HTTP 请求处理
@@ -75,10 +69,10 @@ Exhibition 独立表
 `App.ServeHTTP` 分发顺序：
 
 1. Connect RPC（路径含 `.v1.`，由 `connectRouter` 按服务前缀路由）
-2. 辅助 HTTP：`GET /health`、`GET /api/ws/monitor`（在 `configRouters` 注册）
+2. 辅助 HTTP：`GET /health`（在 `configRouters` 注册）
 3. 静态文件 / SPA `index.html` 回退
 
-中间件链（`server/middleware.go`）：CORS → Recovery → AuditLog，通过 `Chain` 组合，禁止嵌套包装写法。
+中间件链（`server/middleware.go`）：CORS → Recovery，通过 `Chain` 组合，禁止嵌套包装写法。
 
 静态资源 `Cache-Control: no-cache, no-store, must-revalidate`。**禁止**为单个 HTML 注册独立静态路由。
 
@@ -88,4 +82,4 @@ Exhibition 独立表
 
 ## 已知限制
 
-无权限体系、无 HTTPS、无单元测试；settings/logs/nfc/store 等页面多为占位。
+无权限体系、无 HTTPS、无单元测试。

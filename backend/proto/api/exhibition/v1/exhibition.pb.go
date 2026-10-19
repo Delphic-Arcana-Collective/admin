@@ -1113,226 +1113,6 @@ func (x *DeleteExhibitionResponse) GetMessage() string {
 	return ""
 }
 
-type ExtractedExhibition struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Region        string                 `protobuf:"bytes,2,opt,name=region,proto3" json:"region,omitempty"`
-	Location      string                 `protobuf:"bytes,3,opt,name=location,proto3" json:"location,omitempty"`
-	Type          string                 `protobuf:"bytes,4,opt,name=type,proto3" json:"type,omitempty"`
-	StartDate     string                 `protobuf:"bytes,5,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
-	EndDate       string                 `protobuf:"bytes,6,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
-	BoothFee      string                 `protobuf:"bytes,7,opt,name=booth_fee,json=boothFee,proto3" json:"booth_fee,omitempty"`
-	Contact       string                 `protobuf:"bytes,8,opt,name=contact,proto3" json:"contact,omitempty"`
-	Description   string                 `protobuf:"bytes,9,opt,name=description,proto3" json:"description,omitempty"`
-	Link          string                 `protobuf:"bytes,10,opt,name=link,proto3" json:"link,omitempty"`
-	Remark        string                 `protobuf:"bytes,11,opt,name=remark,proto3" json:"remark,omitempty"`
-	Status        string                 `protobuf:"bytes,12,opt,name=status,proto3" json:"status,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ExtractedExhibition) Reset() {
-	*x = ExtractedExhibition{}
-	mi := &file_api_exhibition_v1_exhibition_proto_msgTypes[15]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ExtractedExhibition) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ExtractedExhibition) ProtoMessage() {}
-
-func (x *ExtractedExhibition) ProtoReflect() protoreflect.Message {
-	mi := &file_api_exhibition_v1_exhibition_proto_msgTypes[15]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ExtractedExhibition.ProtoReflect.Descriptor instead.
-func (*ExtractedExhibition) Descriptor() ([]byte, []int) {
-	return file_api_exhibition_v1_exhibition_proto_rawDescGZIP(), []int{15}
-}
-
-func (x *ExtractedExhibition) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *ExtractedExhibition) GetRegion() string {
-	if x != nil {
-		return x.Region
-	}
-	return ""
-}
-
-func (x *ExtractedExhibition) GetLocation() string {
-	if x != nil {
-		return x.Location
-	}
-	return ""
-}
-
-func (x *ExtractedExhibition) GetType() string {
-	if x != nil {
-		return x.Type
-	}
-	return ""
-}
-
-func (x *ExtractedExhibition) GetStartDate() string {
-	if x != nil {
-		return x.StartDate
-	}
-	return ""
-}
-
-func (x *ExtractedExhibition) GetEndDate() string {
-	if x != nil {
-		return x.EndDate
-	}
-	return ""
-}
-
-func (x *ExtractedExhibition) GetBoothFee() string {
-	if x != nil {
-		return x.BoothFee
-	}
-	return ""
-}
-
-func (x *ExtractedExhibition) GetContact() string {
-	if x != nil {
-		return x.Contact
-	}
-	return ""
-}
-
-func (x *ExtractedExhibition) GetDescription() string {
-	if x != nil {
-		return x.Description
-	}
-	return ""
-}
-
-func (x *ExtractedExhibition) GetLink() string {
-	if x != nil {
-		return x.Link
-	}
-	return ""
-}
-
-func (x *ExtractedExhibition) GetRemark() string {
-	if x != nil {
-		return x.Remark
-	}
-	return ""
-}
-
-func (x *ExtractedExhibition) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
-type ExtractFromImageRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	FileId        uint32                 `protobuf:"varint,1,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ExtractFromImageRequest) Reset() {
-	*x = ExtractFromImageRequest{}
-	mi := &file_api_exhibition_v1_exhibition_proto_msgTypes[16]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ExtractFromImageRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ExtractFromImageRequest) ProtoMessage() {}
-
-func (x *ExtractFromImageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_exhibition_v1_exhibition_proto_msgTypes[16]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ExtractFromImageRequest.ProtoReflect.Descriptor instead.
-func (*ExtractFromImageRequest) Descriptor() ([]byte, []int) {
-	return file_api_exhibition_v1_exhibition_proto_rawDescGZIP(), []int{16}
-}
-
-func (x *ExtractFromImageRequest) GetFileId() uint32 {
-	if x != nil {
-		return x.FileId
-	}
-	return 0
-}
-
-type ExtractFromImageResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Data          *ExtractedExhibition   `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ExtractFromImageResponse) Reset() {
-	*x = ExtractFromImageResponse{}
-	mi := &file_api_exhibition_v1_exhibition_proto_msgTypes[17]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ExtractFromImageResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ExtractFromImageResponse) ProtoMessage() {}
-
-func (x *ExtractFromImageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_exhibition_v1_exhibition_proto_msgTypes[17]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ExtractFromImageResponse.ProtoReflect.Descriptor instead.
-func (*ExtractFromImageResponse) Descriptor() ([]byte, []int) {
-	return file_api_exhibition_v1_exhibition_proto_rawDescGZIP(), []int{17}
-}
-
-func (x *ExtractFromImageResponse) GetData() *ExtractedExhibition {
-	if x != nil {
-		return x.Data
-	}
-	return nil
-}
-
 var File_api_exhibition_v1_exhibition_proto protoreflect.FileDescriptor
 
 const file_api_exhibition_v1_exhibition_proto_rawDesc = "" +
@@ -1446,34 +1226,14 @@ const file_api_exhibition_v1_exhibition_proto_rawDesc = "" +
 	"\x17DeleteExhibitionRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\rR\x02id\"4\n" +
 	"\x18DeleteExhibitionResponse\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage\"\xc8\x02\n" +
-	"\x13ExtractedExhibition\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
-	"\x06region\x18\x02 \x01(\tR\x06region\x12\x1a\n" +
-	"\blocation\x18\x03 \x01(\tR\blocation\x12\x12\n" +
-	"\x04type\x18\x04 \x01(\tR\x04type\x12\x1d\n" +
-	"\n" +
-	"start_date\x18\x05 \x01(\tR\tstartDate\x12\x19\n" +
-	"\bend_date\x18\x06 \x01(\tR\aendDate\x12\x1b\n" +
-	"\tbooth_fee\x18\a \x01(\tR\bboothFee\x12\x18\n" +
-	"\acontact\x18\b \x01(\tR\acontact\x12 \n" +
-	"\vdescription\x18\t \x01(\tR\vdescription\x12\x12\n" +
-	"\x04link\x18\n" +
-	" \x01(\tR\x04link\x12\x16\n" +
-	"\x06remark\x18\v \x01(\tR\x06remark\x12\x16\n" +
-	"\x06status\x18\f \x01(\tR\x06status\"2\n" +
-	"\x17ExtractFromImageRequest\x12\x17\n" +
-	"\afile_id\x18\x01 \x01(\rR\x06fileId\"R\n" +
-	"\x18ExtractFromImageResponse\x126\n" +
-	"\x04data\x18\x01 \x01(\v2\".exhibition.v1.ExtractedExhibitionR\x04data2\xd0\x05\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage2\xeb\x04\n" +
 	"\x11ExhibitionService\x12`\n" +
 	"\x0fListExhibitions\x12%.exhibition.v1.ListExhibitionsRequest\x1a&.exhibition.v1.ListExhibitionsResponse\x12Z\n" +
 	"\rGetExhibition\x12#.exhibition.v1.GetExhibitionRequest\x1a$.exhibition.v1.GetExhibitionResponse\x12i\n" +
 	"\x12GetExhibitionStats\x12(.exhibition.v1.GetExhibitionStatsRequest\x1a).exhibition.v1.GetExhibitionStatsResponse\x12c\n" +
 	"\x10CreateExhibition\x12&.exhibition.v1.CreateExhibitionRequest\x1a'.exhibition.v1.CreateExhibitionResponse\x12c\n" +
 	"\x10UpdateExhibition\x12&.exhibition.v1.UpdateExhibitionRequest\x1a'.exhibition.v1.UpdateExhibitionResponse\x12c\n" +
-	"\x10DeleteExhibition\x12&.exhibition.v1.DeleteExhibitionRequest\x1a'.exhibition.v1.DeleteExhibitionResponse\x12c\n" +
-	"\x10ExtractFromImage\x12&.exhibition.v1.ExtractFromImageRequest\x1a'.exhibition.v1.ExtractFromImageResponseB9Z7processDelphicData/proto/api/exhibition/v1;exhibitionv1b\x06proto3"
+	"\x10DeleteExhibition\x12&.exhibition.v1.DeleteExhibitionRequest\x1a'.exhibition.v1.DeleteExhibitionResponseB9Z7processDelphicData/proto/api/exhibition/v1;exhibitionv1b\x06proto3"
 
 var (
 	file_api_exhibition_v1_exhibition_proto_rawDescOnce sync.Once
@@ -1487,7 +1247,7 @@ func file_api_exhibition_v1_exhibition_proto_rawDescGZIP() []byte {
 	return file_api_exhibition_v1_exhibition_proto_rawDescData
 }
 
-var file_api_exhibition_v1_exhibition_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_api_exhibition_v1_exhibition_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_api_exhibition_v1_exhibition_proto_goTypes = []any{
 	(*File)(nil),                       // 0: exhibition.v1.File
 	(*ExhibitionAttachment)(nil),       // 1: exhibition.v1.ExhibitionAttachment
@@ -1504,11 +1264,8 @@ var file_api_exhibition_v1_exhibition_proto_goTypes = []any{
 	(*UpdateExhibitionResponse)(nil),   // 12: exhibition.v1.UpdateExhibitionResponse
 	(*DeleteExhibitionRequest)(nil),    // 13: exhibition.v1.DeleteExhibitionRequest
 	(*DeleteExhibitionResponse)(nil),   // 14: exhibition.v1.DeleteExhibitionResponse
-	(*ExtractedExhibition)(nil),        // 15: exhibition.v1.ExtractedExhibition
-	(*ExtractFromImageRequest)(nil),    // 16: exhibition.v1.ExtractFromImageRequest
-	(*ExtractFromImageResponse)(nil),   // 17: exhibition.v1.ExtractFromImageResponse
-	nil,                                // 18: exhibition.v1.GetExhibitionStatsResponse.StatusCountsEntry
-	nil,                                // 19: exhibition.v1.GetExhibitionStatsResponse.RegionCountsEntry
+	nil,                                // 15: exhibition.v1.GetExhibitionStatsResponse.StatusCountsEntry
+	nil,                                // 16: exhibition.v1.GetExhibitionStatsResponse.RegionCountsEntry
 }
 var file_api_exhibition_v1_exhibition_proto_depIdxs = []int32{
 	0,  // 0: exhibition.v1.ExhibitionAttachment.file:type_name -> exhibition.v1.File
@@ -1516,30 +1273,27 @@ var file_api_exhibition_v1_exhibition_proto_depIdxs = []int32{
 	1,  // 2: exhibition.v1.Exhibition.attachments:type_name -> exhibition.v1.ExhibitionAttachment
 	2,  // 3: exhibition.v1.ListExhibitionsResponse.exhibitions:type_name -> exhibition.v1.Exhibition
 	2,  // 4: exhibition.v1.GetExhibitionResponse.exhibition:type_name -> exhibition.v1.Exhibition
-	18, // 5: exhibition.v1.GetExhibitionStatsResponse.status_counts:type_name -> exhibition.v1.GetExhibitionStatsResponse.StatusCountsEntry
-	19, // 6: exhibition.v1.GetExhibitionStatsResponse.region_counts:type_name -> exhibition.v1.GetExhibitionStatsResponse.RegionCountsEntry
+	15, // 5: exhibition.v1.GetExhibitionStatsResponse.status_counts:type_name -> exhibition.v1.GetExhibitionStatsResponse.StatusCountsEntry
+	16, // 6: exhibition.v1.GetExhibitionStatsResponse.region_counts:type_name -> exhibition.v1.GetExhibitionStatsResponse.RegionCountsEntry
 	2,  // 7: exhibition.v1.CreateExhibitionResponse.exhibition:type_name -> exhibition.v1.Exhibition
 	2,  // 8: exhibition.v1.UpdateExhibitionResponse.exhibition:type_name -> exhibition.v1.Exhibition
-	15, // 9: exhibition.v1.ExtractFromImageResponse.data:type_name -> exhibition.v1.ExtractedExhibition
-	3,  // 10: exhibition.v1.ExhibitionService.ListExhibitions:input_type -> exhibition.v1.ListExhibitionsRequest
-	5,  // 11: exhibition.v1.ExhibitionService.GetExhibition:input_type -> exhibition.v1.GetExhibitionRequest
-	7,  // 12: exhibition.v1.ExhibitionService.GetExhibitionStats:input_type -> exhibition.v1.GetExhibitionStatsRequest
-	9,  // 13: exhibition.v1.ExhibitionService.CreateExhibition:input_type -> exhibition.v1.CreateExhibitionRequest
-	11, // 14: exhibition.v1.ExhibitionService.UpdateExhibition:input_type -> exhibition.v1.UpdateExhibitionRequest
-	13, // 15: exhibition.v1.ExhibitionService.DeleteExhibition:input_type -> exhibition.v1.DeleteExhibitionRequest
-	16, // 16: exhibition.v1.ExhibitionService.ExtractFromImage:input_type -> exhibition.v1.ExtractFromImageRequest
-	4,  // 17: exhibition.v1.ExhibitionService.ListExhibitions:output_type -> exhibition.v1.ListExhibitionsResponse
-	6,  // 18: exhibition.v1.ExhibitionService.GetExhibition:output_type -> exhibition.v1.GetExhibitionResponse
-	8,  // 19: exhibition.v1.ExhibitionService.GetExhibitionStats:output_type -> exhibition.v1.GetExhibitionStatsResponse
-	10, // 20: exhibition.v1.ExhibitionService.CreateExhibition:output_type -> exhibition.v1.CreateExhibitionResponse
-	12, // 21: exhibition.v1.ExhibitionService.UpdateExhibition:output_type -> exhibition.v1.UpdateExhibitionResponse
-	14, // 22: exhibition.v1.ExhibitionService.DeleteExhibition:output_type -> exhibition.v1.DeleteExhibitionResponse
-	17, // 23: exhibition.v1.ExhibitionService.ExtractFromImage:output_type -> exhibition.v1.ExtractFromImageResponse
-	17, // [17:24] is the sub-list for method output_type
-	10, // [10:17] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	3,  // 9: exhibition.v1.ExhibitionService.ListExhibitions:input_type -> exhibition.v1.ListExhibitionsRequest
+	5,  // 10: exhibition.v1.ExhibitionService.GetExhibition:input_type -> exhibition.v1.GetExhibitionRequest
+	7,  // 11: exhibition.v1.ExhibitionService.GetExhibitionStats:input_type -> exhibition.v1.GetExhibitionStatsRequest
+	9,  // 12: exhibition.v1.ExhibitionService.CreateExhibition:input_type -> exhibition.v1.CreateExhibitionRequest
+	11, // 13: exhibition.v1.ExhibitionService.UpdateExhibition:input_type -> exhibition.v1.UpdateExhibitionRequest
+	13, // 14: exhibition.v1.ExhibitionService.DeleteExhibition:input_type -> exhibition.v1.DeleteExhibitionRequest
+	4,  // 15: exhibition.v1.ExhibitionService.ListExhibitions:output_type -> exhibition.v1.ListExhibitionsResponse
+	6,  // 16: exhibition.v1.ExhibitionService.GetExhibition:output_type -> exhibition.v1.GetExhibitionResponse
+	8,  // 17: exhibition.v1.ExhibitionService.GetExhibitionStats:output_type -> exhibition.v1.GetExhibitionStatsResponse
+	10, // 18: exhibition.v1.ExhibitionService.CreateExhibition:output_type -> exhibition.v1.CreateExhibitionResponse
+	12, // 19: exhibition.v1.ExhibitionService.UpdateExhibition:output_type -> exhibition.v1.UpdateExhibitionResponse
+	14, // 20: exhibition.v1.ExhibitionService.DeleteExhibition:output_type -> exhibition.v1.DeleteExhibitionResponse
+	15, // [15:21] is the sub-list for method output_type
+	9,  // [9:15] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_api_exhibition_v1_exhibition_proto_init() }
@@ -1556,7 +1310,7 @@ func file_api_exhibition_v1_exhibition_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_exhibition_v1_exhibition_proto_rawDesc), len(file_api_exhibition_v1_exhibition_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   20,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
