@@ -6,6 +6,8 @@ WORKDIR /src/frontend
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY frontend/ ./
+ENV NEXT_PUBLIC_BASE_PATH=/admin
+ENV NEXT_PUBLIC_API_BASE=/admin
 RUN pnpm build
 
 FROM golang:1.27.1-alpine3.24 AS backend
