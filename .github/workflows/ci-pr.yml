@@ -29,10 +29,11 @@ jobs:
         with:
           go-version-file: backend/go.mod
           cache: true
+          cache-dependency-path: backend/go.sum
 
       - name: Install golangci-lint (built with project Go toolchain)
         working-directory: backend
-        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.1
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
 
       - name: Run golangci-lint
         working-directory: backend
@@ -64,6 +65,7 @@ jobs:
         with:
           go-version-file: backend/go.mod
           cache: true
+          cache-dependency-path: backend/go.sum
 
       - name: Setup buf
         uses: bufbuild/buf-action@v1
