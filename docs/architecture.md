@@ -37,9 +37,6 @@ frontend/
   src/app/         页面
   src/lib/api.ts   Connect JSON 客户端
   src/config.ts    API 基址（NEXT_PUBLIC_API_BASE）
-scripts/
-  ci-deploy.bash           CD：校验 artifact + restart systemd
-  delphic-admin.service    systemd unit 模板
 ```
 
 ## Connect 服务

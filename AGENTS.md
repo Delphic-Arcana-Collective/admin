@@ -4,12 +4,12 @@ Back-office for Delphic Arcana Collection. Monorepo: `backend/` (Go + ConnectRPC
 
 See [docs/architecture.md](docs/architecture.md), [frontend/AGENTS.md](frontend/AGENTS.md), [docs/deployment.md](docs/deployment.md).
 
-## CI/CD
+## CI
 
-- **CI**: PR → `main` → [`ci-pr.yml`](.github/workflows/ci-pr.yml) (lint + test)
-- **CD**: merge to `main` → [`cd-main.yml`](.github/workflows/cd-main.yml) (build artifacts on GitHub, deploy on self-hosted) → [`scripts/ci-deploy.bash`](scripts/ci-deploy.bash)
+- PR or push to `main` → [`ci-pr.yml`](.github/workflows/ci-pr.yml) (lint + test)
+- Push to `main`, after those checks: build [`Dockerfile`](Dockerfile) and push `${DOCKER_USERNAME}/delphic-admin` (`:latest` and `:<short-sha>`) to Docker Hub
 
-`backend/public/` exists only in production—not built in the repo. **Do not** run `pnpm build`, `go build`, deploy, or `systemctl` unless the user explicitly allows it.
+**Do not** run `pnpm build`, `go build`, or deploy unless the user explicitly allows it.
 
 ## Rules
 

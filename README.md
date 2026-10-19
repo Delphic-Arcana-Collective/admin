@@ -15,16 +15,13 @@ Monorepo: `backend/` (Go + ConnectRPC + GORM + PostgreSQL) + `frontend/` (Next.j
 
 Details: [docs/architecture.md](docs/architecture.md).
 
-## CI/CD
+## CI
 
-Push to `main` (or manually trigger Actions) runs [`.github/workflows/cd-main.yml`](.github/workflows/cd-main.yml):
+[`.github/workflows/ci-pr.yml`](.github/workflows/ci-pr.yml) runs on pull requests to `main` and on pushes to `main`: golangci-lint, buf lint, `go test`, and the frontend typecheck plus build.
 
-1. **GitHub-hosted runners** (`ubuntu-24.04`): build backend binary + frontend, upload artifacts (no lint).
-2. **Org-level self-hosted runner** (`delphic-admin-server`): download artifacts, run [`scripts/ci-deploy.bash`](scripts/ci-deploy.bash) (install + restart only).
+A push to `main` continues to a final job that builds [`Dockerfile`](Dockerfile) and pushes `linux/amd64` tags `:latest` and `:<short-sha>` to Docker Hub as `${DOCKER_USERNAME}/delphic-admin`. Repository secrets: `DOCKER_USERNAME`, `DOCKER_PASSWORD`.
 
-PRs targeting `main` run [`.github/workflows/ci-pr.yml`](.github/workflows/ci-pr.yml) for full lint + compile checks before merge.
-
-Production runtime directory: `/usr/local/delphic-admin`; `backend/public/` exists only there—not built or committed in the repo.
+The image listens on `8081` and serves the static export from `/app/public`. It ships [`docker/config.yaml`](docker/config.yaml) with an empty database password. Mount a real config over `/app/config.yaml` at runtime.
 
 Full details: [docs/deployment.md](docs/deployment.md).
 
