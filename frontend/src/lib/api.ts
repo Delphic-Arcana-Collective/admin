@@ -1,14 +1,22 @@
-import { firebaseAuth } from "@/lib/firebase";
-import { signOut } from "firebase/auth";
+import { clearSession, readToken, redirectToAuth } from "@/lib/session";
+
+function authHeaders(headers?: HeadersInit): Headers {
+  const next = new Headers(headers);
+  const token = readToken();
+  if (token) next.set("Authorization", `Bearer ${token}`);
+  return next;
+}
+
+function rejectUnauthorized(status: number): void {
+  if (status !== 401) return;
+  clearSession();
+  redirectToAuth();
+}
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const headers = new Headers(init?.headers);
-  const user = firebaseAuth().currentUser;
-  if (user) headers.set("Authorization", `Bearer ${await user.getIdToken()}`);
+  const headers = authHeaders(init?.headers);
   const res = await fetch(path, { ...init, headers });
-  if (res.status === 401 && firebaseAuth().currentUser) {
-    await signOut(firebaseAuth());
-  }
+  rejectUnauthorized(res.status);
   if (!res.ok) {
     const text = await res.text();
     let message = text || `HTTP ${res.status}`;
@@ -184,7 +192,8 @@ export async function uploadFile(file: File): Promise<{ id: number }> {
 
 export async function fetchFileBlob(fileId: number): Promise<Blob | null> {
   try {
-    const res = await fetch(`/api/files/${fileId}`);
+    const res = await fetch(`/api/files/${fileId}`, { headers: authHeaders() });
+    rejectUnauthorized(res.status);
     if (!res.ok) return null;
     return res.blob();
   } catch {
