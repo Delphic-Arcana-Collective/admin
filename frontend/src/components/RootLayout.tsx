@@ -1,35 +1,32 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
 import { useToast } from "@/components/Toast";
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
 import Image from "next/image";
+import { firebaseAuth } from "@/lib/firebase";
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
   const { pushNotification } = useToast();
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
-  const [email, setEmail] = useState("admin@delphic.com");
+  const [submitting, setSubmitting] = useState(false);
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
 
   useEffect(() => {
-    const loggedIn = localStorage.getItem("delphic_logged_in") || sessionStorage.getItem("delphic_logged_in");
-    if (!loggedIn) {
-      setIsLoggedIn(false);
+    return onAuthStateChanged(firebaseAuth(), (user) => {
+      setIsLoggedIn(!!user);
       setLoading(false);
-      return;
-    }
-    setIsLoggedIn(true);
-    setLoading(false);
+    });
   }, []);
 
   const handleSignin = async (e: React.FormEvent) => {
@@ -38,17 +35,24 @@ export default function RootLayout({
       pushNotification({ style: "error", title: "请输入邮箱" });
       return;
     }
+    if (!password) {
+      pushNotification({ style: "error", title: "请输入密码" });
+      return;
+    }
 
-    setLoading(true);
+    setSubmitting(true);
     try {
-      localStorage.setItem("delphic_logged_in", "true");
-      sessionStorage.setItem("delphic_logged_in", "true");
+      await signInWithEmailAndPassword(firebaseAuth(), email, password);
       pushNotification({ style: "success", title: "登录成功" });
-      setIsLoggedIn(true);
-    } catch {
-      pushNotification({ style: "error", title: "登录失败" });
+    } catch (err) {
+      const code = typeof err === "object" && err && "code" in err ? String(err.code) : "";
+      if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found") {
+        pushNotification({ style: "error", title: "邮箱或密码错误" });
+      } else {
+        pushNotification({ style: "error", title: "登录失败" });
+      }
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -114,6 +118,7 @@ export default function RootLayout({
                       onChange={(e) => setPassword(e.target.value)}
                       className="w-full px-4 py-3 border border-block-border rounded-xs text-control bg-white pr-12"
                       placeholder="请在此输入密码"
+                      required
                     />
                     <button
                       type="button"
@@ -127,21 +132,21 @@ export default function RootLayout({
 
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={submitting}
                   className="w-full py-4 text-base font-medium cursor-pointer transition-colors rounded-xs active:scale-[0.98]"
                   style={{
                     backgroundColor: "var(--color-accent)",
                     color: "var(--color-accent-text)",
                   }}
                 >
-                  {loading ? "登录中..." : "登录"}
+                  {submitting ? "登录中..." : "登录"}
                 </button>
               </form>
             </div>
 
             <div className="mt-6 text-center">
               <p className="text-sm text-control-light">
-                点击登录按钮即可进入系统
+                请使用已登记的邮箱和密码登录
               </p>
             </div>
           </div>

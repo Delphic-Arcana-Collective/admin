@@ -1,0 +1,15 @@
+{
+  "name": "delphic-admin",
+  "compatibility_date": "2026-10-19",
+  "pages_build_output_dir": "./frontend/out",
+  "vars": {
+    "FIREBASE_PROJECT_ID": "delphic-arcana-admin"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "delphic",
+      "database_id": "0a484b5a-6b70-4e29-b54f-3c23e60c1306"
+    }
+  ]
+}

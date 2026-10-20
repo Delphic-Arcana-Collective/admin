@@ -1,45 +1,34 @@
-import { getBaseUrl } from "@/config";
+import { firebaseAuth } from "@/lib/firebase";
+import { signOut } from "firebase/auth";
 
-// Connect JSON protocol client — manual fetch wrapper (no code gen).
-
-async function connectCall<T>(
-  procedure: string,
-  body: Record<string, unknown> = {}
-): Promise<T> {
-  const base = getBaseUrl();
-  const res = await fetch(`${base}/${procedure}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers);
+  const user = firebaseAuth().currentUser;
+  if (user) headers.set("Authorization", `Bearer ${await user.getIdToken()}`);
+  const res = await fetch(path, { ...init, headers });
+  if (res.status === 401 && firebaseAuth().currentUser) {
+    await signOut(firebaseAuth());
+  }
   if (!res.ok) {
     const text = await res.text();
+    let message = text || `HTTP ${res.status}`;
     try {
-      const err = JSON.parse(text) as { message?: string; code?: string };
-      throw new Error(err.message || err.code || text);
+      const err = JSON.parse(text) as { error?: string };
+      if (err.error) message = err.error;
     } catch {
-      throw new Error(text || `HTTP ${res.status}`);
+      // Response body is not JSON.
     }
+    throw new Error(message);
   }
   return res.json() as Promise<T>;
 }
 
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}
-
-function base64ToBlob(base64: string, mimeType: string): Blob {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return new Blob([bytes], { type: mimeType || "application/octet-stream" });
+function jsonInit(method: string, body: unknown): RequestInit {
+  return {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  };
 }
 
 // --- Dashboard ---
@@ -53,23 +42,7 @@ export interface DashboardData {
 }
 
 export async function getDashboard(): Promise<DashboardData> {
-  const res = await connectCall<{
-    dashboard: {
-      id: number;
-      totalBalance: number;
-      totalIncome: number;
-      totalExpense: number;
-      lastFlowDate: string;
-    };
-  }>("dashboard.v1.DashboardService/GetDashboard");
-  const d = res.dashboard;
-  return {
-    id: d.id,
-    total_balance: d.totalBalance ?? 0,
-    total_income: d.totalIncome ?? 0,
-    total_expense: d.totalExpense ?? 0,
-    last_flow_date: d.lastFlowDate || null,
-  };
+  return api<DashboardData>("/api/dashboard");
 }
 
 // --- Fund Flow ---
@@ -90,22 +63,8 @@ export interface MonthlyStat {
   expense: number;
 }
 
-function mapFundFlow(f: Record<string, unknown>): FundFlow {
-  return {
-    id: f.id as number,
-    transaction_date: f.transactionDate as string,
-    item: f.item as string,
-    amount: f.amount as number,
-    remark: (f.remark as string) || "",
-    created_at: f.createdAt as string,
-  };
-}
-
 export async function listFundFlows(): Promise<FundFlow[]> {
-  const res = await connectCall<{ fundFlows: Record<string, unknown>[] }>(
-    "fund_flow.v1.FundFlowService/ListFundFlows"
-  );
-  return (res.fundFlows || []).map(mapFundFlow);
+  return api<FundFlow[]>("/api/fund-flows");
 }
 
 export async function createFundFlow(data: {
@@ -114,18 +73,7 @@ export async function createFundFlow(data: {
   amount: number;
   remark?: string;
 }): Promise<FundFlow> {
-  const res = await connectCall<{ fundFlow: Record<string, unknown> }>(
-    "fund_flow.v1.FundFlowService/CreateFundFlow",
-    {
-      fundFlow: {
-        transactionDate: data.transaction_date,
-        item: data.item,
-        amount: data.amount,
-        remark: data.remark ?? "",
-      },
-    }
-  );
-  return mapFundFlow(res.fundFlow);
+  return api<FundFlow>("/api/fund-flows", jsonInit("POST", data));
 }
 
 export async function updateFundFlow(
@@ -137,35 +85,15 @@ export async function updateFundFlow(
     remark?: string;
   }
 ): Promise<FundFlow> {
-  const res = await connectCall<{ fundFlow: Record<string, unknown> }>(
-    "fund_flow.v1.FundFlowService/UpdateFundFlow",
-    {
-      id,
-      fundFlow: {
-        transactionDate: data.transaction_date,
-        item: data.item,
-        amount: data.amount,
-        remark: data.remark ?? "",
-      },
-    }
-  );
-  return mapFundFlow(res.fundFlow);
+  return api<FundFlow>(`/api/fund-flows/${id}`, jsonInit("PUT", data));
 }
 
 export async function deleteFundFlow(id: number): Promise<void> {
-  await connectCall("fund_flow.v1.FundFlowService/DeleteFundFlow", { id });
+  await api(`/api/fund-flows/${id}`, { method: "DELETE" });
 }
 
 export async function getMonthlyStats(): Promise<MonthlyStat[]> {
-  const res = await connectCall<{
-    stats: { year: number; month: number; income?: number; expense?: number }[];
-  }>("fund_flow.v1.FundFlowService/GetMonthlyStats");
-  return (res.stats || []).map((s) => ({
-    year: s.year,
-    month: s.month,
-    income: s.income ?? 0,
-    expense: s.expense ?? 0,
-  }));
+  return api<MonthlyStat[]>("/api/fund-flows/monthly");
 }
 
 // --- Exhibition ---
@@ -202,47 +130,8 @@ export interface Exhibition {
   attachments: ExhibitionAttachment[];
 }
 
-function mapFileRef(f: Record<string, unknown>): ExhibitionFileRef {
-  return {
-    id: f.id as number,
-    ext: (f.ext as string) || "",
-    mime_type: (f.mimeType as string) || "",
-  };
-}
-
-function mapExhibition(e: Record<string, unknown>): Exhibition {
-  const coverImage = e.coverImage as Record<string, unknown> | undefined;
-  const attachments = (e.attachments as Record<string, unknown>[]) || [];
-  return {
-    id: e.id as number,
-    region: (e.region as string) || "",
-    name: (e.name as string) || "",
-    start_date: (e.startDate as string) || null,
-    end_date: (e.endDate as string) || null,
-    location: (e.location as string) || "",
-    type: (e.type as string) || "",
-    booth_fee: (e.boothFee as string) || "",
-    contact: (e.contact as string) || "",
-    remark: (e.remark as string) || "",
-    status: (e.status as string) || "",
-    created_at: e.createdAt as string,
-    cover_image_id: (e.coverImageId as number) ?? null,
-    cover_image: coverImage ? mapFileRef(coverImage) : null,
-    description: (e.description as string) || "",
-    link: (e.link as string) || "",
-    attachments: attachments.map((a) => ({
-      id: a.id as number,
-      file_id: a.fileId as number,
-      file: mapFileRef((a.file as Record<string, unknown>) || {}),
-    })),
-  };
-}
-
 export async function listExhibitions(): Promise<Exhibition[]> {
-  const res = await connectCall<{ exhibitions: Record<string, unknown>[] }>(
-    "exhibition.v1.ExhibitionService/ListExhibitions"
-  );
-  return (res.exhibitions || []).map(mapExhibition);
+  return api<Exhibition[]>("/api/exhibitions");
 }
 
 export interface ExhibitionInput {
@@ -263,29 +152,7 @@ export interface ExhibitionInput {
 }
 
 export async function createExhibition(data: ExhibitionInput): Promise<Exhibition> {
-  const body: Record<string, unknown> = {
-    region: data.region,
-    name: data.name,
-    location: data.location,
-    type: data.type ?? "",
-    boothFee: data.booth_fee ?? "",
-    contact: data.contact ?? "",
-    remark: data.remark ?? "",
-    status: data.status ?? "",
-    description: data.description ?? "",
-    link: data.link ?? "",
-    startDate: data.start_date ?? "",
-    endDate: data.end_date ?? "",
-    attachmentIds: data.attachment_ids ?? [],
-  };
-  if (data.cover_image_id != null) {
-    body.coverImageId = data.cover_image_id;
-  }
-  const res = await connectCall<{ exhibition: Record<string, unknown> }>(
-    "exhibition.v1.ExhibitionService/CreateExhibition",
-    body
-  );
-  return mapExhibition(res.exhibition);
+  return api<Exhibition>("/api/exhibitions", jsonInit("POST", data));
 }
 
 export async function updateExhibition(
@@ -293,65 +160,33 @@ export async function updateExhibition(
   data: ExhibitionInput,
   opts?: { updateCoverImage?: boolean; replaceAttachments?: boolean }
 ): Promise<Exhibition> {
-  const body: Record<string, unknown> = {
-    id,
-    region: data.region,
-    name: data.name,
-    location: data.location,
-    type: data.type ?? "",
-    boothFee: data.booth_fee ?? "",
-    contact: data.contact ?? "",
-    remark: data.remark ?? "",
-    status: data.status ?? "",
-    description: data.description ?? "",
-    link: data.link ?? "",
-    startDate: data.start_date ?? "",
-    endDate: data.end_date ?? "",
-  };
-  if (opts?.updateCoverImage) {
-    body.updateCoverImage = true;
-    body.coverImageId = data.cover_image_id ?? undefined;
-  }
-  if (opts?.replaceAttachments) {
-    body.replaceAttachments = true;
-    body.attachmentIds = data.attachment_ids ?? [];
-  }
-  const res = await connectCall<{ exhibition: Record<string, unknown> }>(
-    "exhibition.v1.ExhibitionService/UpdateExhibition",
-    body
+  return api<Exhibition>(
+    `/api/exhibitions/${id}`,
+    jsonInit("PUT", {
+      ...data,
+      update_cover_image: opts?.updateCoverImage ?? false,
+      replace_attachments: opts?.replaceAttachments ?? false,
+    })
   );
-  return mapExhibition(res.exhibition);
 }
 
 export async function deleteExhibition(id: number): Promise<void> {
-  await connectCall("exhibition.v1.ExhibitionService/DeleteExhibition", { id });
+  await api(`/api/exhibitions/${id}`, { method: "DELETE" });
 }
 
 // --- File ---
 
 export async function uploadFile(file: File): Promise<{ id: number }> {
-  const bytes = await file.arrayBuffer();
-  const ext = file.name.includes(".")
-    ? "." + file.name.split(".").pop()
-    : "";
-  const res = await connectCall<{ file: { id: number } }>(
-    "file.v1.FileService/UploadFile",
-    {
-      data: arrayBufferToBase64(bytes),
-      filename: file.name,
-      ext,
-      mimeType: file.type || "application/octet-stream",
-    }
-  );
-  return { id: res.file.id };
+  const body = new FormData();
+  body.append("file", file);
+  return api<{ id: number }>("/api/files", { method: "POST", body });
 }
 
 export async function fetchFileBlob(fileId: number): Promise<Blob | null> {
   try {
-    const res = await connectCall<{
-      file: { data: string; mimeType: string };
-    }>("file.v1.FileService/GetFile", { id: fileId });
-    return base64ToBlob(res.file.data, res.file.mimeType);
+    const res = await fetch(`/api/files/${fileId}`);
+    if (!res.ok) return null;
+    return res.blob();
   } catch {
     return null;
   }

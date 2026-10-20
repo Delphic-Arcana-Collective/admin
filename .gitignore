@@ -1,9 +1,9 @@
 *.exe
 .DS_Store
+.wrangler/
+node_modules/
 
 # Build artifacts — generated at deploy/local build time, never commit
-backend/public/
-backend/delphic_admin
 frontend/out/
 frontend/.next/
 *.tsbuildinfo
