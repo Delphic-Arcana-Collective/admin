@@ -110,9 +110,7 @@ export default function ServicesPage() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-lg font-medium text-main">服务状态</h1>
-          <p className="text-sm text-control mt-1">
-            {canEdit ? "已登录，可以修改服务状态" : "未登录，当前为只读"}
-          </p>
+          {!canEdit && <p className="text-sm text-control mt-1">未登录，当前为只读</p>}
         </div>
         {canEdit && (
           <button
