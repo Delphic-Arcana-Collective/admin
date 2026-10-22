@@ -110,7 +110,7 @@ export function ConfirmModal({
             className={`inline-flex items-center justify-center gap-2 rounded-xs text-sm font-medium whitespace-nowrap cursor-pointer transition-colors h-9 px-4 active:scale-95 ${
               danger
                 ? "bg-error hover:bg-error-hover text-white"
-                : "bg-accent hover:bg-accent-hover text-white"
+                : "bg-accent hover:bg-accent-hover text-accent-text"
             }`}
           >
             {confirmText}
@@ -149,7 +149,7 @@ export function FilterModal({ isOpen, onClose, title, children, onClear, onConfi
           </button>
           <button
             onClick={onConfirm}
-            className="inline-flex items-center justify-center gap-2 rounded-xs text-sm font-medium whitespace-nowrap cursor-pointer transition-colors h-9 px-4 bg-accent hover:bg-accent-hover text-white active:scale-95"
+            className="inline-flex items-center justify-center gap-2 rounded-xs text-sm font-medium whitespace-nowrap cursor-pointer transition-colors h-9 px-4 bg-accent hover:bg-accent-hover text-accent-text active:scale-95"
           >
             确定{hasSelection ? ` (${hasSelection})` : ""}
           </button>

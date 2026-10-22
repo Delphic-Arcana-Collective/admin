@@ -472,6 +472,83 @@ async function uploadFile(db: Database, request: Request): Promise<Response> {
   return json({ id });
 }
 
+const serviceStatuses = new Set(["up", "down", "maintenance"]);
+
+async function ensureServices(db: Database): Promise<void> {
+  await db
+    .prepare(
+      `CREATE TABLE IF NOT EXISTS service (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        status TEXT NOT NULL,
+        note TEXT NOT NULL DEFAULT '',
+        updated_at TEXT NOT NULL
+      )`,
+    )
+    .run();
+}
+
+function mapService(row: Record<string, unknown>) {
+  return {
+    id: num(row.id),
+    name: text(row.name),
+    status: text(row.status),
+    note: text(row.note),
+    updated_at: text(row.updated_at),
+  };
+}
+
+function serviceBody(body: Record<string, unknown>): { name: string; status: string; note: string } | Response {
+  const name = text(body.name).trim();
+  const status = text(body.status);
+  if (!name) return fail("name is required", 400);
+  if (!serviceStatuses.has(status)) return fail("invalid status", 400);
+  return { name, status, note: text(body.note) };
+}
+
+async function listServices(db: Database): Promise<Response> {
+  await ensureServices(db);
+  const rows = await db.prepare("SELECT * FROM service ORDER BY id").all<Record<string, unknown>>();
+  return json(rows.results.map(mapService));
+}
+
+async function createService(db: Database, body: Record<string, unknown>): Promise<Response> {
+  const parsed = serviceBody(body);
+  if (parsed instanceof Response) return parsed;
+  await ensureServices(db);
+  const updated = nowIso();
+  const inserted = await db
+    .prepare("INSERT INTO service (name, status, note, updated_at) VALUES (?, ?, ?, ?)")
+    .bind(parsed.name, parsed.status, parsed.note, updated)
+    .run();
+  const id = inserted.meta.last_row_id;
+  const row = await db.prepare("SELECT * FROM service WHERE id = ?").bind(id).first<Record<string, unknown>>();
+  return json(row ? mapService(row) : { id, ...parsed, updated_at: updated }, 201);
+}
+
+async function updateService(db: Database, id: number, body: Record<string, unknown>): Promise<Response> {
+  const parsed = serviceBody(body);
+  if (parsed instanceof Response) return parsed;
+  await ensureServices(db);
+  const existing = await db.prepare("SELECT id FROM service WHERE id = ?").bind(id).first();
+  if (!existing) return fail("not found", 404);
+  const updated = nowIso();
+  await db
+    .prepare("UPDATE service SET name = ?, status = ?, note = ?, updated_at = ? WHERE id = ?")
+    .bind(parsed.name, parsed.status, parsed.note, updated, id)
+    .run();
+  const row = await db.prepare("SELECT * FROM service WHERE id = ?").bind(id).first<Record<string, unknown>>();
+  return json(row ? mapService(row) : { id, ...parsed, updated_at: updated });
+}
+
+async function deleteService(db: Database, id: number): Promise<Response> {
+  await ensureServices(db);
+  const existing = await db.prepare("SELECT id FROM service WHERE id = ?").bind(id).first();
+  if (!existing) return fail("not found", 404);
+  await db.prepare("DELETE FROM service WHERE id = ?").bind(id).run();
+  return json({ id });
+}
+
 async function route(context: RouteContext, method: string, parts: string[]): Promise<Response> {
   const db = context.env.DB;
   if (parts.length === 1 && parts[0] === "dashboard" && method === "GET") {
@@ -494,6 +571,14 @@ async function route(context: RouteContext, method: string, parts: string[]): Pr
     if (id != null && method === "PUT") return updateExhibition(db, id, await readJson(context.request));
     if (id != null && method === "DELETE") return deleteExhibition(db, id);
   }
+  if (parts[0] === "services") {
+    if (parts.length === 1 && method === "GET") return listServices(db);
+    if (parts.length === 1 && method === "POST") return createService(db, await readJson(context.request));
+    const id = parts.length === 2 ? idOf(parts[1]) : null;
+    if (parts.length === 2 && id == null) return fail("invalid id", 400);
+    if (id != null && method === "PUT") return updateService(db, id, await readJson(context.request));
+    if (id != null && method === "DELETE") return deleteService(db, id);
+  }
   if (parts[0] === "files") {
     if (parts.length === 1 && method === "POST") return uploadFile(db, context.request);
     const id = parts.length === 2 ? idOf(parts[1]) : null;
@@ -505,11 +590,16 @@ async function route(context: RouteContext, method: string, parts: string[]): Pr
 
 export async function onRequest(context: RouteContext): Promise<Response> {
   try {
-    const header = context.request.headers.get("Authorization") ?? "";
-    const token = header.startsWith("Bearer ") ? header.slice("Bearer ".length).trim() : "";
-    const ok = token !== "" && (await verifyFirebaseToken(token, context.env.FIREBASE_PROJECT_ID));
-    if (!ok) return fail("unauthorized", 401);
-    return await route(context, context.request.method.toUpperCase(), segments(context.params.path));
+    const method = context.request.method.toUpperCase();
+    const parts = segments(context.params.path);
+    const publicRead = method === "GET" && parts.length === 1 && parts[0] === "services";
+    if (!publicRead) {
+      const header = context.request.headers.get("Authorization") ?? "";
+      const token = header.startsWith("Bearer ") ? header.slice("Bearer ".length).trim() : "";
+      const ok = token !== "" && (await verifyFirebaseToken(token, context.env.FIREBASE_PROJECT_ID));
+      if (!ok) return fail("unauthorized", 401);
+    }
+    return await route(context, method, parts);
   } catch (err) {
     const message = err instanceof Error ? err.message : "internal error";
     return fail(message === "invalid json" ? message : "internal error", message === "invalid json" ? 400 : 500);

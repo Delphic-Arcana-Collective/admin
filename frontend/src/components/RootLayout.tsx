@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
 import { hasValidToken, redirectToAuth } from "@/lib/session";
@@ -10,16 +11,18 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
   const [ready, setReady] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const openWithoutToken = pathname === "/services";
 
   useEffect(() => {
-    if (!hasValidToken()) {
-      redirectToAuth();
+    if (openWithoutToken || hasValidToken()) {
+      setReady(true);
       return;
     }
-    setReady(true);
-  }, []);
+    redirectToAuth();
+  }, [openWithoutToken]);
 
   if (!ready) return null;
 

@@ -246,7 +246,7 @@ function ExhibitionModal({
             type="button"
             disabled={submitting}
             onClick={handleSubmit}
-            className="inline-flex items-center justify-center gap-2 rounded-xs text-sm font-medium whitespace-nowrap cursor-pointer transition-colors h-9 px-4 bg-accent text-white hover:bg-accent-hover disabled:opacity-50 active:scale-95"
+            className="inline-flex items-center justify-center gap-2 rounded-xs text-sm font-medium whitespace-nowrap cursor-pointer transition-colors h-9 px-4 bg-accent text-accent-text hover:bg-accent-hover disabled:opacity-50 active:scale-95"
           >
             {submitting ? "提交中..." : mode === "create" ? "创建" : "更新"}
           </button>
@@ -579,7 +579,7 @@ export default function ActivitiesPage() {
             筛选{selectedRegions.length > 0 || selectedStatuses.filter(s => s !== "进行中" && s !== "将至矣").length > 0 ? ` (${selectedRegions.length + selectedStatuses.filter(s => s !== "进行中" && s !== "将至矣").length})` : ""}
           </button>
           <button
-            className="inline-flex items-center justify-center gap-2 rounded-xs text-sm font-medium whitespace-nowrap cursor-pointer transition-colors focus:outline-hidden h-9 px-4 bg-accent text-white hover:bg-accent-hover active:scale-95"
+            className="inline-flex items-center justify-center gap-2 rounded-xs text-sm font-medium whitespace-nowrap cursor-pointer transition-colors focus:outline-hidden h-9 px-4 bg-accent text-accent-text hover:bg-accent-hover active:scale-95"
             onClick={() => setShowCreateModal(true)}
           >
             <Plus className="w-4 h-4" />
@@ -606,7 +606,7 @@ export default function ActivitiesPage() {
                   onClick={() => toggleStatus(status)}
                   className={`px-3 py-1.5 rounded-xs text-sm font-medium border transition-colors active:scale-95 ${
                     selectedStatuses.includes(status)
-                      ? "border-accent bg-accent text-white"
+                      ? "border-accent bg-accent text-accent-text"
                       : "border-control-border bg-control-bg text-control hover:bg-control-bg-hover"
                   }`}
                 >
@@ -624,7 +624,7 @@ export default function ActivitiesPage() {
                   onClick={() => toggleRegion(region)}
                   className={`px-3 py-1.5 rounded-xs text-sm font-medium border transition-colors active:scale-95 ${
                     selectedRegions.includes(region)
-                      ? "border-accent bg-accent text-white"
+                      ? "border-accent bg-accent text-accent-text"
                       : "border-control-border bg-control-bg text-control hover:bg-control-bg-hover"
                   }`}
                 >

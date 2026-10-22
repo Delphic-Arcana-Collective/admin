@@ -4,6 +4,7 @@ import {
   ChevronDown,
   ChevronRight,
   Activity,
+  Server,
   Wallet,
   LayoutDashboard,
   Link2,
@@ -53,6 +54,13 @@ const sidebarItems: SidebarItem[] = [
   {
     type: "divider",
     name: "",
+  },
+  {
+    title: "服务状态",
+    icon: Server,
+    name: "services",
+    path: "/services",
+    type: "route",
   },
   {
     title: "NFC 链接生成器",

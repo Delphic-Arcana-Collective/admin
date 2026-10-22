@@ -201,6 +201,42 @@ export async function fetchFileBlob(fileId: number): Promise<Blob | null> {
   }
 }
 
+export interface ServiceStatus {
+  id: number;
+  name: string;
+  status: "up" | "down" | "maintenance";
+  note: string;
+  updated_at: string;
+}
+
+export async function listServices(): Promise<ServiceStatus[]> {
+  const res = await fetch("/api/services");
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `HTTP ${res.status}`);
+  }
+  return res.json() as Promise<ServiceStatus[]>;
+}
+
+export async function createService(data: {
+  name: string;
+  status: ServiceStatus["status"];
+  note?: string;
+}): Promise<ServiceStatus> {
+  return api<ServiceStatus>("/api/services", jsonInit("POST", data));
+}
+
+export async function updateService(
+  id: number,
+  data: { name: string; status: ServiceStatus["status"]; note?: string }
+): Promise<ServiceStatus> {
+  return api<ServiceStatus>(`/api/services/${id}`, jsonInit("PUT", data));
+}
+
+export async function deleteService(id: number): Promise<void> {
+  await api(`/api/services/${id}`, { method: "DELETE" });
+}
+
 export async function fetchFileAsDataUrl(fileId: number): Promise<string | null> {
   const blob = await fetchFileBlob(fileId);
   if (!blob) return null;
