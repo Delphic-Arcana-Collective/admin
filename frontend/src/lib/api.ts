@@ -201,11 +201,16 @@ export async function fetchFileBlob(fileId: number): Promise<Blob | null> {
   }
 }
 
+export type ServiceProtocol = "tcp" | "udp";
+export type ServiceProbeStatus = "online" | "offline" | "unknown";
+
 export interface ServiceStatus {
   id: number;
-  name: string;
-  status: "up" | "down" | "maintenance";
+  address: string;
+  protocol: ServiceProtocol;
   note: string;
+  last_status: ServiceProbeStatus;
+  last_checked_at: string | null;
   updated_at: string;
 }
 
@@ -219,8 +224,8 @@ export async function listServices(): Promise<ServiceStatus[]> {
 }
 
 export async function createService(data: {
-  name: string;
-  status: ServiceStatus["status"];
+  address: string;
+  protocol: ServiceProtocol;
   note?: string;
 }): Promise<ServiceStatus> {
   return api<ServiceStatus>("/api/services", jsonInit("POST", data));
@@ -228,13 +233,31 @@ export async function createService(data: {
 
 export async function updateService(
   id: number,
-  data: { name: string; status: ServiceStatus["status"]; note?: string }
+  data: { address: string; protocol: ServiceProtocol; note?: string }
 ): Promise<ServiceStatus> {
   return api<ServiceStatus>(`/api/services/${id}`, jsonInit("PUT", data));
 }
 
 export async function deleteService(id: number): Promise<void> {
   await api(`/api/services/${id}`, { method: "DELETE" });
+}
+
+export async function probeAllServices(): Promise<ServiceStatus[]> {
+  const res = await fetch("/api/services/probe-all", { method: "POST" });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `HTTP ${res.status}`);
+  }
+  return res.json() as Promise<ServiceStatus[]>;
+}
+
+export async function probeService(id: number): Promise<ServiceStatus> {
+  const res = await fetch(`/api/services/${id}/probe`, { method: "POST" });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `HTTP ${res.status}`);
+  }
+  return res.json() as Promise<ServiceStatus>;
 }
 
 export async function fetchFileAsDataUrl(fileId: number): Promise<string | null> {

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Plus, RefreshCw } from "lucide-react";
+import { clsx } from "clsx";
 import { useToast } from "@/components/Toast";
 import { LoadingOverlay } from "@/components/LoadingSpinner";
 import { Modal, ConfirmModal } from "@/components/Modal";
@@ -11,71 +12,168 @@ import {
   createService,
   updateService,
   deleteService,
+  probeAllServices,
+  probeService,
+  type ServiceProtocol,
+  type ServiceProbeStatus,
   type ServiceStatus,
 } from "@/lib/api";
 
-const statusOptions: { value: ServiceStatus["status"]; label: string; color: string }[] = [
-  { value: "up", label: "正常", color: "bg-green-100 text-green-700" },
-  { value: "down", label: "异常", color: "bg-red-100 text-red-700" },
-  { value: "maintenance", label: "维护", color: "bg-yellow-100 text-yellow-700" },
-];
+function StatusLight({ status }: { status: ServiceProbeStatus | "checking" }) {
+  const online = status === "online";
+  const checking = status === "checking";
+  const label =
+    status === "online"
+      ? "在线"
+      : status === "offline"
+        ? "离线"
+        : status === "checking"
+          ? "检测中"
+          : "未知";
+  return (
+    <span className="inline-flex items-center gap-2" title={label}>
+      <span
+        className={clsx(
+          "relative inline-block size-2.5 rounded-full shrink-0",
+          online ? "bg-green-500" : "bg-gray-400",
+          checking && "animate-pulse"
+        )}
+      >
+        {online && (
+          <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-40" />
+        )}
+      </span>
+      <span className="text-xs text-control">{label}</span>
+    </span>
+  );
+}
 
-function statusLabel(status: string): { label: string; color: string } {
-  return statusOptions.find((item) => item.value === status) ?? {
-    label: status,
-    color: "bg-gray-100 text-gray-700",
-  };
+function isValidAddress(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed || /^https?:\/\//i.test(trimmed)) return false;
+  const bracketed = trimmed.match(/^\[([^\]]+)\]:(\d+)$/);
+  if (bracketed) {
+    const port = Number(bracketed[2]);
+    return Number.isInteger(port) && port >= 1 && port <= 65535;
+  }
+  const idx = trimmed.lastIndexOf(":");
+  if (idx <= 0) return false;
+  const host = trimmed.slice(0, idx).trim();
+  const port = Number(trimmed.slice(idx + 1));
+  return Boolean(host) && Number.isInteger(port) && port >= 1 && port <= 65535;
+}
+
+function formatCheckedAt(value: string | null): string {
+  if (!value) return "-";
+  return value.replace("T", " ").slice(0, 16);
 }
 
 export default function ServicesPage() {
   const { pushNotification } = useToast();
   const [canEdit, setCanEdit] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [probing, setProbing] = useState(false);
   const [rows, setRows] = useState<ServiceStatus[]>([]);
+  const [liveStatus, setLiveStatus] = useState<Record<number, ServiceProbeStatus | "checking">>({});
   const [editing, setEditing] = useState<ServiceStatus | null>(null);
-  const [draftName, setDraftName] = useState("");
-  const [draftStatus, setDraftStatus] = useState<ServiceStatus["status"]>("up");
+  const [draftAddress, setDraftAddress] = useState("");
+  const [draftProtocol, setDraftProtocol] = useState<ServiceProtocol>("tcp");
   const [draftNote, setDraftNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState<ServiceStatus | null>(null);
 
-  async function reload() {
-    const data = await listServices();
+  const applyRows = useCallback((data: ServiceStatus[]) => {
     setRows(data);
-  }
+    const next: Record<number, ServiceProbeStatus | "checking"> = {};
+    for (const row of data) {
+      next[row.id] = row.last_status || "unknown";
+    }
+    setLiveStatus(next);
+  }, []);
+
+  const reload = useCallback(async () => {
+    const data = await listServices();
+    applyRows(data);
+    return data;
+  }, [applyRows]);
+
+  const runProbeAll = useCallback(async () => {
+    setProbing(true);
+    setLiveStatus((prev) => {
+      const next = { ...prev };
+      for (const id of Object.keys(next)) next[Number(id)] = "checking";
+      return next;
+    });
+    try {
+      const data = await probeAllServices();
+      applyRows(data);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "探测失败";
+      pushNotification({ style: "error", title: message });
+      await reload().catch(() => undefined);
+    } finally {
+      setProbing(false);
+    }
+  }, [applyRows, pushNotification, reload]);
 
   useEffect(() => {
     setCanEdit(hasValidToken());
-    reload()
-      .catch((err: unknown) => {
+    let cancelled = false;
+    (async () => {
+      try {
+        await reload();
+        if (!cancelled) await runProbeAll();
+      } catch (err: unknown) {
+        if (cancelled) return;
         const message = err instanceof Error ? err.message : "加载失败";
         pushNotification({ style: "error", title: message });
-      })
-      .finally(() => setLoading(false));
-  }, [pushNotification]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pushNotification, reload, runProbeAll]);
 
   function openCreate() {
-    setEditing({ id: 0, name: "", status: "up", note: "", updated_at: "" });
-    setDraftName("");
-    setDraftStatus("up");
+    setEditing({
+      id: 0,
+      address: "",
+      protocol: "tcp",
+      note: "",
+      last_status: "unknown",
+      last_checked_at: null,
+      updated_at: "",
+    });
+    setDraftAddress("");
+    setDraftProtocol("tcp");
     setDraftNote("");
   }
 
   function openEdit(row: ServiceStatus) {
     setEditing(row);
-    setDraftName(row.name);
-    setDraftStatus(row.status);
+    setDraftAddress(row.address);
+    setDraftProtocol(row.protocol === "udp" ? "udp" : "tcp");
     setDraftNote(row.note);
   }
 
   async function save() {
-    if (!draftName.trim()) {
-      pushNotification({ style: "error", title: "请填写服务名称" });
+    if (!isValidAddress(draftAddress)) {
+      pushNotification({
+        style: "error",
+        title: "请填写有效地址",
+        description: "格式为 IP:端口，例如 1.2.3.4:8080",
+      });
       return;
     }
     setSaving(true);
     try {
-      const body = { name: draftName.trim(), status: draftStatus, note: draftNote };
+      const body = {
+        address: draftAddress.trim(),
+        protocol: draftProtocol,
+        note: draftNote,
+      };
       if (editing && editing.id) {
         await updateService(editing.id, body);
       } else {
@@ -83,7 +181,8 @@ export default function ServicesPage() {
       }
       setEditing(null);
       await reload();
-      pushNotification({ style: "success", title: "已保存" });
+      await runProbeAll();
+      pushNotification({ style: "success", title: "已保存并完成探测" });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "保存失败";
       pushNotification({ style: "error", title: message });
@@ -105,23 +204,50 @@ export default function ServicesPage() {
     }
   }
 
+  async function testOne(row: ServiceStatus) {
+    setLiveStatus((prev) => ({ ...prev, [row.id]: "checking" }));
+    try {
+      const next = await probeService(row.id);
+      setRows((prev) => prev.map((item) => (item.id === next.id ? next : item)));
+      setLiveStatus((prev) => ({ ...prev, [next.id]: next.last_status || "unknown" }));
+    } catch (err: unknown) {
+      setLiveStatus((prev) => ({ ...prev, [row.id]: "unknown" }));
+      const message = err instanceof Error ? err.message : "探测失败";
+      pushNotification({ style: "error", title: message });
+    }
+  }
+
   return (
     <div className="max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div>
           <h1 className="text-lg font-medium text-main">服务状态</h1>
-          {!canEdit && <p className="text-sm text-control mt-1">未登录，当前为只读</p>}
+          <p className="text-sm text-control mt-1">
+            填写 IP:端口 与协议后自动探测；状态灯绿=在线，灰=离线/未知。
+            {!canEdit && <span className="ml-1">未登录，当前为只读。</span>}
+          </p>
         </div>
-        {canEdit && (
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={openCreate}
-            className="inline-flex items-center justify-center gap-2 rounded-xs text-sm font-medium h-9 px-4 bg-accent text-accent-text hover:bg-accent-hover cursor-pointer"
+            onClick={() => void runProbeAll()}
+            disabled={probing || loading}
+            className="inline-flex items-center justify-center gap-2 rounded-xs text-sm font-medium h-9 px-4 border border-control-border bg-control-bg text-main cursor-pointer disabled:opacity-50"
           >
-            <Plus className="w-4 h-4" />
-            添加
+            <RefreshCw className={clsx("w-4 h-4", probing && "animate-spin")} />
+            {probing ? "探测中…" : "全部探测"}
           </button>
-        )}
+          {canEdit && (
+            <button
+              type="button"
+              onClick={openCreate}
+              className="inline-flex items-center justify-center gap-2 rounded-xs text-sm font-medium h-9 px-4 bg-accent text-accent-text hover:bg-accent-hover cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              添加
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="border border-block-border rounded-xs overflow-hidden relative min-h-40">
@@ -129,46 +255,64 @@ export default function ServicesPage() {
         <table className="w-full text-sm">
           <thead className="bg-control-bg text-control">
             <tr>
-              <th className="text-left font-medium px-4 py-2">服务</th>
+              <th className="text-left font-medium px-4 py-2">地址</th>
+              <th className="text-left font-medium px-4 py-2">协议</th>
               <th className="text-left font-medium px-4 py-2">状态</th>
               <th className="text-left font-medium px-4 py-2">备注</th>
-              <th className="text-left font-medium px-4 py-2">更新时间</th>
-              {canEdit && <th className="px-4 py-2" />}
+              <th className="text-left font-medium px-4 py-2">上次探测</th>
+              <th className="px-4 py-2" />
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && !loading && (
               <tr>
-                <td colSpan={canEdit ? 5 : 4} className="px-4 py-8 text-center text-control">
-                  还没有服务
+                <td colSpan={6} className="px-4 py-8 text-center text-control">
+                  {canEdit ? "还没有服务，点击右上角添加一条 IP:端口。" : "暂无服务数据。"}
                 </td>
               </tr>
             )}
-            {rows.map((row) => {
-              const badge = statusLabel(row.status);
-              return (
-                <tr key={row.id} className="border-t border-block-border">
-                  <td className="px-4 py-3 text-main">{row.name}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${badge.color}`}>
-                      {badge.label}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-control">{row.note || "-"}</td>
-                  <td className="px-4 py-3 text-control">{row.updated_at ? row.updated_at.replace("T", " ").slice(0, 16) : "-"}</td>
+            {rows.map((row) => (
+              <tr key={row.id} className="border-t border-block-border">
+                <td className="px-4 py-3 text-main font-mono text-xs sm:text-sm break-all">
+                  {row.address}
+                </td>
+                <td className="px-4 py-3 text-control uppercase">{row.protocol}</td>
+                <td className="px-4 py-3">
+                  <StatusLight status={liveStatus[row.id] ?? row.last_status ?? "unknown"} />
+                </td>
+                <td className="px-4 py-3 text-control">{row.note || "-"}</td>
+                <td className="px-4 py-3 text-control whitespace-nowrap">
+                  {formatCheckedAt(row.last_checked_at)}
+                </td>
+                <td className="px-4 py-3 text-right whitespace-nowrap">
+                  <button
+                    type="button"
+                    className="text-accent cursor-pointer mr-3"
+                    onClick={() => void testOne(row)}
+                  >
+                    测试
+                  </button>
                   {canEdit && (
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <button type="button" className="text-accent cursor-pointer mr-3" onClick={() => openEdit(row)}>
+                    <>
+                      <button
+                        type="button"
+                        className="text-accent cursor-pointer mr-3"
+                        onClick={() => openEdit(row)}
+                      >
                         编辑
                       </button>
-                      <button type="button" className="text-error cursor-pointer" onClick={() => setRemoving(row)}>
+                      <button
+                        type="button"
+                        className="text-error cursor-pointer"
+                        onClick={() => setRemoving(row)}
+                      >
                         删除
                       </button>
-                    </td>
+                    </>
                   )}
-                </tr>
-              );
-            })}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -188,7 +332,7 @@ export default function ServicesPage() {
             </button>
             <button
               type="button"
-              onClick={save}
+              onClick={() => void save()}
               disabled={saving}
               className="inline-flex items-center justify-center h-9 px-4 rounded-xs text-sm bg-accent text-accent-text hover:bg-accent-hover cursor-pointer disabled:opacity-50"
             >
@@ -199,44 +343,45 @@ export default function ServicesPage() {
       >
         <div className="flex flex-col gap-3">
           <label className="text-sm text-control">
-            名称
+            地址 <span className="text-red-500">*</span>
             <input
-              value={draftName}
-              onChange={(event) => setDraftName(event.target.value)}
-              className="mt-1 w-full px-3 py-2 border border-block-border rounded-xs text-main bg-white"
+              value={draftAddress}
+              onChange={(event) => setDraftAddress(event.target.value)}
+              placeholder="例如 1.2.3.4:8080"
+              className="mt-1 w-full px-3 py-2 border border-block-border rounded-xs text-main bg-white font-mono"
             />
           </label>
           <label className="text-sm text-control">
-            状态
+            协议
             <select
-              value={draftStatus}
-              onChange={(event) => setDraftStatus(event.target.value as ServiceStatus["status"])}
+              value={draftProtocol}
+              onChange={(event) => setDraftProtocol(event.target.value as ServiceProtocol)}
               className="mt-1 w-full px-3 py-2 border border-block-border rounded-xs text-main bg-white"
             >
-              {statusOptions.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
+              <option value="tcp">TCP</option>
+              <option value="udp">UDP</option>
             </select>
           </label>
           <label className="text-sm text-control">
-            备注
+            备注（可选）
             <input
               value={draftNote}
               onChange={(event) => setDraftNote(event.target.value)}
               className="mt-1 w-full px-3 py-2 border border-block-border rounded-xs text-main bg-white"
             />
           </label>
+          <p className="text-xs text-control-light">
+            状态由服务端按所选协议自动探测，无需手动选择。
+          </p>
         </div>
       </Modal>
 
       <ConfirmModal
         isOpen={removing !== null}
         onClose={() => setRemoving(null)}
-        onConfirm={confirmRemove}
+        onConfirm={() => void confirmRemove()}
         title="删除服务"
-        description={removing ? `删除「${removing.name}」？` : ""}
+        description={removing ? `删除「${removing.address}」？` : ""}
         danger
       />
     </div>

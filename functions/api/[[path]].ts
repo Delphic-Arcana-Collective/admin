@@ -472,16 +472,26 @@ async function uploadFile(db: Database, request: Request): Promise<Response> {
   return json({ id });
 }
 
-const serviceStatuses = new Set(["up", "down", "maintenance"]);
+const serviceProtocols = new Set(["tcp", "udp"]);
+const probeStatuses = new Set(["online", "offline", "unknown"]);
+
+type ProbeStatus = "online" | "offline" | "unknown";
 
 async function ensureServices(db: Database): Promise<void> {
+  const info = await db.prepare("PRAGMA table_info(service)").all<{ name: string }>();
+  const cols = new Set((info.results || []).map((c) => c.name));
+  if (cols.size > 0 && !cols.has("address")) {
+    await db.prepare("DROP TABLE service").run();
+  }
   await db
     .prepare(
       `CREATE TABLE IF NOT EXISTS service (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        status TEXT NOT NULL,
+        address TEXT NOT NULL,
+        protocol TEXT NOT NULL DEFAULT 'tcp',
         note TEXT NOT NULL DEFAULT '',
+        last_status TEXT NOT NULL DEFAULT 'unknown',
+        last_checked_at TEXT,
         updated_at TEXT NOT NULL
       )`,
     )
@@ -491,19 +501,105 @@ async function ensureServices(db: Database): Promise<void> {
 function mapService(row: Record<string, unknown>) {
   return {
     id: num(row.id),
-    name: text(row.name),
-    status: text(row.status),
+    address: text(row.address),
+    protocol: text(row.protocol) || "tcp",
     note: text(row.note),
+    last_status: text(row.last_status) || "unknown",
+    last_checked_at: text(row.last_checked_at) || null,
     updated_at: text(row.updated_at),
   };
 }
 
-function serviceBody(body: Record<string, unknown>): { name: string; status: string; note: string } | Response {
-  const name = text(body.name).trim();
-  const status = text(body.status);
-  if (!name) return fail("name is required", 400);
-  if (!serviceStatuses.has(status)) return fail("invalid status", 400);
-  return { name, status, note: text(body.note) };
+function parseHostPort(address: string): { host: string; port: number } | null {
+  const trimmed = address.trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return null;
+
+  const bracketed = trimmed.match(/^\[([^\]]+)\]:(\d+)$/);
+  if (bracketed) {
+    const port = Number(bracketed[2]);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) return null;
+    return { host: bracketed[1], port };
+  }
+
+  const idx = trimmed.lastIndexOf(":");
+  if (idx <= 0) return null;
+  const host = trimmed.slice(0, idx).trim();
+  const port = Number(trimmed.slice(idx + 1));
+  if (!host || host.includes("/") || !Number.isInteger(port) || port < 1 || port > 65535) {
+    return null;
+  }
+  return { host, port };
+}
+
+function serviceBody(
+  body: Record<string, unknown>,
+): { address: string; protocol: string; note: string } | Response {
+  const address = text(body.address).trim();
+  const protocol = text(body.protocol).trim().toLowerCase() || "tcp";
+  if (!parseHostPort(address)) {
+    return fail("address must be host:port (e.g. 1.2.3.4:8080)", 400);
+  }
+  if (!serviceProtocols.has(protocol)) return fail("protocol must be tcp or udp", 400);
+  return { address, protocol, note: text(body.note) };
+}
+
+async function probeTcp(host: string, port: number): Promise<ProbeStatus> {
+  const { connect } = await import("cloudflare:sockets");
+  const timeoutMs = 3000;
+  try {
+    const socket = connect({ hostname: host, port });
+    const status = await Promise.race([
+      socket.opened.then(() => "online" as const),
+      new Promise<ProbeStatus>((resolve) => {
+        setTimeout(() => resolve("offline"), timeoutMs);
+      }),
+    ]);
+    try {
+      socket.close();
+    } catch {
+      /* ignore */
+    }
+    return status;
+  } catch {
+    return "offline";
+  }
+}
+
+async function probeUdp(host: string, port: number): Promise<ProbeStatus> {
+  // Workers have no first-class outbound UDP port check; best-effort via node:dgram when available.
+  try {
+    const dgram = await import("node:dgram");
+    return await new Promise<ProbeStatus>((resolve) => {
+      let settled = false;
+      const done = (status: ProbeStatus) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        try {
+          socket.close();
+        } catch {
+          /* ignore */
+        }
+        resolve(status);
+      };
+      const socket = dgram.createSocket("udp4");
+      const timer = setTimeout(() => done("online"), 1500);
+      socket.on("error", () => done("offline"));
+      socket.send(Uint8Array.of(0), port, host, (err) => {
+        if (err) done("offline");
+      });
+    });
+  } catch {
+    return "unknown";
+  }
+}
+
+async function probeAddress(address: string, protocol: string): Promise<ProbeStatus> {
+  const parsed = parseHostPort(address);
+  if (!parsed) return "unknown";
+  if (protocol === "udp") return probeUdp(parsed.host, parsed.port);
+  return probeTcp(parsed.host, parsed.port);
 }
 
 async function listServices(db: Database): Promise<Response> {
@@ -518,12 +614,20 @@ async function createService(db: Database, body: Record<string, unknown>): Promi
   await ensureServices(db);
   const updated = nowIso();
   const inserted = await db
-    .prepare("INSERT INTO service (name, status, note, updated_at) VALUES (?, ?, ?, ?)")
-    .bind(parsed.name, parsed.status, parsed.note, updated)
+    .prepare(
+      "INSERT INTO service (address, protocol, note, last_status, last_checked_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+    )
+    .bind(parsed.address, parsed.protocol, parsed.note, "unknown", null, updated)
     .run();
   const id = inserted.meta.last_row_id;
+  const status = await probeAddress(parsed.address, parsed.protocol);
+  const checked = nowIso();
+  await db
+    .prepare("UPDATE service SET last_status = ?, last_checked_at = ? WHERE id = ?")
+    .bind(status, checked, id)
+    .run();
   const row = await db.prepare("SELECT * FROM service WHERE id = ?").bind(id).first<Record<string, unknown>>();
-  return json(row ? mapService(row) : { id, ...parsed, updated_at: updated }, 201);
+  return json(row ? mapService(row) : { id, ...parsed, last_status: status, last_checked_at: checked, updated_at: updated }, 201);
 }
 
 async function updateService(db: Database, id: number, body: Record<string, unknown>): Promise<Response> {
@@ -534,11 +638,17 @@ async function updateService(db: Database, id: number, body: Record<string, unkn
   if (!existing) return fail("not found", 404);
   const updated = nowIso();
   await db
-    .prepare("UPDATE service SET name = ?, status = ?, note = ?, updated_at = ? WHERE id = ?")
-    .bind(parsed.name, parsed.status, parsed.note, updated, id)
+    .prepare("UPDATE service SET address = ?, protocol = ?, note = ?, updated_at = ? WHERE id = ?")
+    .bind(parsed.address, parsed.protocol, parsed.note, updated, id)
+    .run();
+  const status = await probeAddress(parsed.address, parsed.protocol);
+  const checked = nowIso();
+  await db
+    .prepare("UPDATE service SET last_status = ?, last_checked_at = ? WHERE id = ?")
+    .bind(status, checked, id)
     .run();
   const row = await db.prepare("SELECT * FROM service WHERE id = ?").bind(id).first<Record<string, unknown>>();
-  return json(row ? mapService(row) : { id, ...parsed, updated_at: updated });
+  return json(row ? mapService(row) : { id, ...parsed, last_status: status, last_checked_at: checked, updated_at: updated });
 }
 
 async function deleteService(db: Database, id: number): Promise<Response> {
@@ -547,6 +657,57 @@ async function deleteService(db: Database, id: number): Promise<Response> {
   if (!existing) return fail("not found", 404);
   await db.prepare("DELETE FROM service WHERE id = ?").bind(id).run();
   return json({ id });
+}
+
+async function probeOneService(db: Database, id: number): Promise<Response> {
+  await ensureServices(db);
+  const row = await db.prepare("SELECT * FROM service WHERE id = ?").bind(id).first<Record<string, unknown>>();
+  if (!row) return fail("not found", 404);
+  const address = text(row.address);
+  const protocol = text(row.protocol) || "tcp";
+  const status = await probeAddress(address, protocol);
+  const checked = nowIso();
+  await db
+    .prepare("UPDATE service SET last_status = ?, last_checked_at = ? WHERE id = ?")
+    .bind(status, checked, id)
+    .run();
+  const next = await db.prepare("SELECT * FROM service WHERE id = ?").bind(id).first<Record<string, unknown>>();
+  return json(next ? mapService(next) : { ...mapService(row), last_status: status, last_checked_at: checked });
+}
+
+async function probeAllServices(db: Database): Promise<Response> {
+  await ensureServices(db);
+  const rows = await db.prepare("SELECT * FROM service ORDER BY id").all<Record<string, unknown>>();
+  const out = [];
+  for (const row of rows.results) {
+    const id = num(row.id);
+    const address = text(row.address);
+    const protocol = text(row.protocol) || "tcp";
+    const status = await probeAddress(address, protocol);
+    const checked = nowIso();
+    await db
+      .prepare("UPDATE service SET last_status = ?, last_checked_at = ? WHERE id = ?")
+      .bind(status, checked, id)
+      .run();
+    out.push({
+      ...mapService(row),
+      last_status: status,
+      last_checked_at: checked,
+    });
+  }
+  return json(out);
+}
+
+async function probeAdHoc(body: Record<string, unknown>): Promise<Response> {
+  const address = text(body.address).trim();
+  const protocol = text(body.protocol).trim().toLowerCase() || "tcp";
+  if (!parseHostPort(address)) {
+    return fail("address must be host:port (e.g. 1.2.3.4:8080)", 400);
+  }
+  if (!serviceProtocols.has(protocol)) return fail("protocol must be tcp or udp", 400);
+  const status = await probeAddress(address, protocol);
+  if (!probeStatuses.has(status)) return json({ status: "unknown", address, protocol });
+  return json({ status, address, protocol });
 }
 
 async function route(context: RouteContext, method: string, parts: string[]): Promise<Response> {
@@ -574,10 +735,23 @@ async function route(context: RouteContext, method: string, parts: string[]): Pr
   if (parts[0] === "services") {
     if (parts.length === 1 && method === "GET") return listServices(db);
     if (parts.length === 1 && method === "POST") return createService(db, await readJson(context.request));
-    const id = parts.length === 2 ? idOf(parts[1]) : null;
-    if (parts.length === 2 && id == null) return fail("invalid id", 400);
-    if (id != null && method === "PUT") return updateService(db, id, await readJson(context.request));
-    if (id != null && method === "DELETE") return deleteService(db, id);
+    if (parts.length === 2 && parts[1] === "probe-all" && method === "POST") {
+      return probeAllServices(db);
+    }
+    if (parts.length === 2 && parts[1] === "probe" && method === "POST") {
+      return probeAdHoc(await readJson(context.request));
+    }
+    const id = parts.length === 2 || parts.length === 3 ? idOf(parts[1]) : null;
+    if ((parts.length === 2 || parts.length === 3) && parts[1] !== "probe-all" && parts[1] !== "probe" && id == null) {
+      return fail("invalid id", 400);
+    }
+    if (id != null && parts.length === 2 && method === "PUT") {
+      return updateService(db, id, await readJson(context.request));
+    }
+    if (id != null && parts.length === 2 && method === "DELETE") return deleteService(db, id);
+    if (id != null && parts.length === 3 && parts[2] === "probe" && method === "POST") {
+      return probeOneService(db, id);
+    }
   }
   if (parts[0] === "files") {
     if (parts.length === 1 && method === "POST") return uploadFile(db, context.request);
@@ -592,8 +766,12 @@ export async function onRequest(context: RouteContext): Promise<Response> {
   try {
     const method = context.request.method.toUpperCase();
     const parts = segments(context.params.path);
-    const publicRead = method === "GET" && parts.length === 1 && parts[0] === "services";
-    if (!publicRead) {
+    const publicServices =
+      parts[0] === "services" &&
+      ((method === "GET" && parts.length === 1) ||
+        (method === "POST" && parts.length === 2 && (parts[1] === "probe-all" || parts[1] === "probe")) ||
+        (method === "POST" && parts.length === 3 && parts[2] === "probe"));
+    if (!publicServices) {
       const header = context.request.headers.get("Authorization") ?? "";
       const token = header.startsWith("Bearer ") ? header.slice("Bearer ".length).trim() : "";
       const ok = token !== "" && (await verifyFirebaseToken(token, context.env.FIREBASE_PROJECT_ID));
