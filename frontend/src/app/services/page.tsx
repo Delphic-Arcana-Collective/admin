@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Plus, RefreshCw } from "lucide-react";
 import { clsx } from "clsx";
+import { ActionDropdown } from "@/components/ActionDropdown";
 import { useToast } from "@/components/Toast";
 import { LoadingOverlay } from "@/components/LoadingSpinner";
 import { Modal, ConfirmModal } from "@/components/Modal";
@@ -43,7 +44,7 @@ function StatusLight({ status }: { status: ServiceProbeStatus | "checking" }) {
           <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-40" />
         )}
       </span>
-      <span className="text-xs text-control">{label}</span>
+      <span className="inline-block w-[3em] text-left text-xs text-control">{label}</span>
     </span>
   );
 }
@@ -222,10 +223,7 @@ export default function ServicesPage() {
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div>
           <h1 className="text-lg font-medium text-main">服务状态</h1>
-          <p className="text-sm text-control mt-1">
-            填写 IP:端口 与协议后自动探测；状态灯绿=在线，灰=离线/未知。
-            {!canEdit && <span className="ml-1">未登录，当前为只读。</span>}
-          </p>
+          {!canEdit && <p className="text-sm text-control mt-1">未登录，当前为只读。</p>}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -250,14 +248,14 @@ export default function ServicesPage() {
         </div>
       </div>
 
-      <div className="border border-block-border rounded-xs overflow-hidden relative min-h-40">
+      <div className={clsx("border border-block-border rounded-xs relative", loading && "min-h-40")}>
         {loading && <LoadingOverlay />}
         <table className="w-full text-sm">
           <thead className="bg-control-bg text-control">
             <tr>
               <th className="text-left font-medium px-4 py-2">地址</th>
               <th className="text-left font-medium px-4 py-2">协议</th>
-              <th className="text-left font-medium px-4 py-2">状态</th>
+              <th className="text-left font-medium px-4 py-2 w-28">状态</th>
               <th className="text-left font-medium px-4 py-2">备注</th>
               <th className="text-left font-medium px-4 py-2">上次探测</th>
               <th className="px-4 py-2" />
@@ -277,39 +275,25 @@ export default function ServicesPage() {
                   {row.address}
                 </td>
                 <td className="px-4 py-3 text-control uppercase">{row.protocol}</td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 w-28 whitespace-nowrap">
                   <StatusLight status={liveStatus[row.id] ?? row.last_status ?? "unknown"} />
                 </td>
                 <td className="px-4 py-3 text-control">{row.note || "-"}</td>
                 <td className="px-4 py-3 text-control whitespace-nowrap">
                   {formatCheckedAt(row.last_checked_at)}
                 </td>
-                <td className="px-4 py-3 text-right whitespace-nowrap">
-                  <button
-                    type="button"
-                    className="text-accent cursor-pointer mr-3"
-                    onClick={() => void testOne(row)}
-                  >
-                    测试
-                  </button>
-                  {canEdit && (
-                    <>
-                      <button
-                        type="button"
-                        className="text-accent cursor-pointer mr-3"
-                        onClick={() => openEdit(row)}
-                      >
-                        编辑
-                      </button>
-                      <button
-                        type="button"
-                        className="text-error cursor-pointer"
-                        onClick={() => setRemoving(row)}
-                      >
-                        删除
-                      </button>
-                    </>
-                  )}
+                <td className="px-4 py-3 text-right w-12">
+                  <ActionDropdown
+                    actions={[
+                      { label: "测试", onClick: () => void testOne(row) },
+                      ...(canEdit
+                        ? [
+                            { label: "编辑", onClick: () => openEdit(row) },
+                            { label: "删除", danger: true, onClick: () => setRemoving(row) },
+                          ]
+                        : []),
+                    ]}
+                  />
                 </td>
               </tr>
             ))}
