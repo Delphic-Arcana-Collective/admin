@@ -5,6 +5,7 @@ import { Search, Plus, SlidersHorizontal, Link as LinkIcon, Image as ImageIcon, 
 import { useToast } from "@/components/Toast";
 import { LoadingOverlay } from "@/components/LoadingSpinner";
 import { ActionDropdown } from "@/components/ActionDropdown";
+import { createdToday } from "@/lib/createdToday";
 import { Modal, ConfirmModal, FilterModal } from "@/components/Modal";
 import {
   listExhibitions,
@@ -650,21 +651,23 @@ export default function ActivitiesPage() {
                 className="relative border border-block-border rounded-xs bg-white p-4 hover:shadow-sm transition-shadow cursor-pointer"
                 onClick={() => setDetailExhibition(e)}
               >
-                <div className="absolute top-2 right-2">
-                  <ActionDropdown
-                    actions={[
-                      {
-                        label: "编辑",
-                        onClick: () => setEditTarget(e),
-                      },
-                      {
-                        label: "删除",
-                        danger: true,
-                        onClick: () => setDeleteTarget(e),
-                      },
-                    ]}
-                  />
-                </div>
+                {createdToday(e.created_at) && (
+                  <div className="absolute top-2 right-2">
+                    <ActionDropdown
+                      actions={[
+                        {
+                          label: "编辑",
+                          onClick: () => setEditTarget(e),
+                        },
+                        {
+                          label: "删除",
+                          danger: true,
+                          onClick: () => setDeleteTarget(e),
+                        },
+                      ]}
+                    />
+                  </div>
+                )}
                 
                 <div className="flex flex-wrap items-center gap-2 mb-2">
                   {timeStatus && (
@@ -759,19 +762,21 @@ export default function ActivitiesPage() {
                       {e.remark ? (e.remark.length > 20 ? e.remark.slice(0, 20) + "..." : e.remark) : "-"}
                     </td>
                     <td className="px-4 py-3">
-                      <ActionDropdown
-                        actions={[
-                          {
-                            label: "编辑",
-                            onClick: () => setEditTarget(e),
-                          },
-                          {
-                            label: "删除",
-                            danger: true,
-                            onClick: () => setDeleteTarget(e),
-                          },
-                        ]}
-                      />
+                      {createdToday(e.created_at) && (
+                        <ActionDropdown
+                          actions={[
+                            {
+                              label: "编辑",
+                              onClick: () => setEditTarget(e),
+                            },
+                            {
+                              label: "删除",
+                              danger: true,
+                              onClick: () => setDeleteTarget(e),
+                            },
+                          ]}
+                        />
+                      )}
                     </td>
                   </tr>
                 );

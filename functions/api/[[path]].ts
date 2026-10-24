@@ -63,6 +63,23 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+function shanghaiDay(iso: string): string | null {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function createdToday(iso: string): boolean {
+  const created = shanghaiDay(iso);
+  const today = shanghaiDay(new Date().toISOString());
+  return created !== null && created === today;
+}
+
 async function readJson(request: Request): Promise<Record<string, unknown>> {
   const body: unknown = await request.json();
   if (!body || typeof body !== "object" || Array.isArray(body)) {
@@ -168,6 +185,7 @@ async function createFlow(db: Database, body: Record<string, unknown>): Promise<
 async function updateFlow(db: Database, id: number, body: Record<string, unknown>): Promise<Response> {
   const existing = await db.prepare("SELECT * FROM fund_flow WHERE id = ?").bind(id).first<Record<string, unknown>>();
   if (!existing) return fail("not found", 404);
+  if (!createdToday(text(existing.created_at))) return fail("only records created today can be changed", 403);
   const transactionDate = text(body.transaction_date) || text(existing.transaction_date);
   const item = text(body.item) || text(existing.item);
   const amount = body.amount == null ? num(existing.amount) : num(body.amount);
@@ -200,6 +218,7 @@ async function updateFlow(db: Database, id: number, body: Record<string, unknown
 async function deleteFlow(db: Database, id: number): Promise<Response> {
   const existing = await db.prepare("SELECT * FROM fund_flow WHERE id = ?").bind(id).first<Record<string, unknown>>();
   if (!existing) return fail("not found", 404);
+  if (!createdToday(text(existing.created_at))) return fail("only records created today can be changed", 403);
   const amount = num(existing.amount);
   const incomeDelta = amount > 0 ? -amount : 0;
   const expenseDelta = amount < 0 ? amount : 0;
@@ -377,8 +396,12 @@ async function createExhibition(db: Database, body: Record<string, unknown>): Pr
 }
 
 async function updateExhibition(db: Database, id: number, body: Record<string, unknown>): Promise<Response> {
-  const existing = await db.prepare("SELECT id FROM exhibition WHERE id = ?").bind(id).first();
+  const existing = await db
+    .prepare("SELECT created_at FROM exhibition WHERE id = ?")
+    .bind(id)
+    .first<Record<string, unknown>>();
   if (!existing) return fail("not found", 404);
+  if (!createdToday(text(existing.created_at))) return fail("only records created today can be changed", 403);
   const assignments: string[] = [];
   const values: SqlValue[] = [];
   const setText = (column: string, key: string) => {
@@ -423,6 +446,12 @@ async function updateExhibition(db: Database, id: number, body: Record<string, u
 }
 
 async function deleteExhibition(db: Database, id: number): Promise<Response> {
+  const existing = await db
+    .prepare("SELECT created_at FROM exhibition WHERE id = ?")
+    .bind(id)
+    .first<Record<string, unknown>>();
+  if (!existing) return fail("not found", 404);
+  if (!createdToday(text(existing.created_at))) return fail("only records created today can be changed", 403);
   await db.batch([
     db.prepare("DELETE FROM exhibition_attachments WHERE exhibition_id = ?").bind(id),
     db.prepare("DELETE FROM exhibition WHERE id = ?").bind(id),

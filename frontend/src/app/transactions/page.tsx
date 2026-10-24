@@ -6,6 +6,7 @@ import { clsx } from "clsx";
 import { useToast } from "@/components/Toast";
 import { LoadingOverlay } from "@/components/LoadingSpinner";
 import { ActionDropdown } from "@/components/ActionDropdown";
+import { createdToday } from "@/lib/createdToday";
 import { ConfirmModal } from "@/components/Modal";
 import {
   listFundFlows,
@@ -371,21 +372,23 @@ export default function TransactionsPage() {
               key={t.id}
               className="relative border border-block-border rounded-xs bg-white p-4 hover:shadow-sm transition-shadow"
             >
-              <div className="absolute top-2 right-2 z-10">
-                <ActionDropdown
-                  actions={[
-                    {
-                      label: "编辑",
-                      onClick: () => setEditTarget(t),
-                    },
-                    {
-                      label: "删除",
-                      danger: true,
-                      onClick: () => setDeleteTarget(t),
-                    },
-                  ]}
-                />
-              </div>
+              {createdToday(t.created_at) && (
+                <div className="absolute top-2 right-2 z-10">
+                  <ActionDropdown
+                    actions={[
+                      {
+                        label: "编辑",
+                        onClick: () => setEditTarget(t),
+                      },
+                      {
+                        label: "删除",
+                        danger: true,
+                        onClick: () => setDeleteTarget(t),
+                      },
+                    ]}
+                  />
+                </div>
+              )}
               
               <div className="text-control-light text-xs mb-1">{formatDateTimeForDisplay(t.transaction_date)}</div>
               
@@ -448,19 +451,21 @@ export default function TransactionsPage() {
                   <RemarkCell remark={t.remark} />
                 </td>
                 <td className="px-4 py-3">
-                  <ActionDropdown
-                    actions={[
-                      {
-                        label: "编辑",
-                        onClick: () => setEditTarget(t),
-                      },
-                      {
-                        label: "删除",
-                        danger: true,
-                        onClick: () => setDeleteTarget(t),
-                      },
-                    ]}
-                  />
+                  {createdToday(t.created_at) && (
+                    <ActionDropdown
+                      actions={[
+                        {
+                          label: "编辑",
+                          onClick: () => setEditTarget(t),
+                        },
+                        {
+                          label: "删除",
+                          danger: true,
+                          onClick: () => setDeleteTarget(t),
+                        },
+                      ]}
+                    />
+                  )}
                 </td>
               </tr>
             ))}
